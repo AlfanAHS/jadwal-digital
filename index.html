@@ -1301,16 +1301,24 @@
             }
 
             function deleteSchedule(id) {
-                showConfirmation('Apakah Anda yakin ingin menghapus jadwal ini?', () => {
-                    const index = schedules.findIndex(s => s.id === id);
-                    if (index !== -1) {
-                        schedules.splice(index, 1);
-                        saveSchedules();
-                        renderAllViews();
-                        stackedScheduleModal.hide();
-                    }
-                });
-            }
+            showConfirmation('Apakah Anda yakin ingin menghapus jadwal ini?', () => {
+                const index = schedules.findIndex(s => s.id === id);
+                if (index !== -1) {
+                    schedules.splice(index, 1);
+                    database.ref('schedules').set(schedules)
+                        .then(() => {
+                            localStorage.setItem('schedules', JSON.stringify(schedules));
+                            renderAllViews();
+                            stackedScheduleModal.hide();
+                            console.log('Jadwal berhasil dihapus dari Firebase');
+                        })
+                        .catch(error => {
+                            console.error('Gagal menghapus dari Firebase:', error);
+                        });
+                }
+            });
+}
+
 
             function showEditModal(id) {
                 const schedule = schedules.find(s => s.id === id);
@@ -1337,7 +1345,7 @@
             function updateSchedule() {
                 const id = parseInt(editScheduleId.value);
                 const scheduleIndex = schedules.findIndex(s => s.id === id);
-                
+
                 if (scheduleIndex !== -1) {
                     const updatedSchedule = {
                         id: id,
@@ -1349,27 +1357,28 @@
                         location: editLocation.value
                     };
 
-                    // Validasi waktu
                     if (updatedSchedule.startTime >= updatedSchedule.endTime) {
                         alert('Waktu selesai harus setelah waktu mulai');
                         return;
                     }
 
-                    // Validasi konflik jadwal (exclude the schedule being edited)
                     const hasConflict = checkScheduleConflict(updatedSchedule, scheduleIndex);
-                    if (hasConflict) {
-                        return;
-                    }
+                    if (hasConflict) return;
 
-                    // Update the schedule
                     schedules[scheduleIndex] = updatedSchedule;
-                    saveSchedules();
-                    renderAllViews();
-                    
-                    // Close the modal
-                    editModal.classList.add('hidden');
+                    database.ref('schedules').set(schedules)
+                        .then(() => {
+                            localStorage.setItem('schedules', JSON.stringify(schedules));
+                            renderAllViews();
+                            editModal.classList.add('hidden');
+                            console.log('Jadwal berhasil diperbarui di Firebase');
+                        })
+                        .catch(error => {
+                            console.error('Gagal menyimpan perubahan ke Firebase:', error);
+                        });
                 }
             }
+
 
             function renderWeeklyView() {
                 // Calculate week range
