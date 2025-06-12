@@ -866,7 +866,6 @@
 
             // Inisialisasi
             generateTimeOptions();
-            generateDropdownOptions();
             generateEditFormDropdowns();
             currentDateInput.valueAsDate = new Date();
             scheduleDateInput.valueAsDate = new Date();
@@ -1136,28 +1135,28 @@
                 editLocation.innerHTML = locationOptions;
             }
 
-            function generateDropdownOptions() {
-                // Generate subject options
-                let subjectOptions = '';
-                subjects.forEach((subject, index) => {
-                    subjectOptions += `<option value="${subject}">${subject}</option>`;
-                });
-                subjectName.innerHTML = subjectOptions;
+            // function generateDropdownOptions() {
+            //     // Generate subject options
+            //     let subjectOptions = '';
+            //     subjects.forEach((subject, index) => {
+            //         subjectOptions += `<option value="${subject}">${subject}</option>`;
+            //     });
+            //     subjectName.innerHTML = subjectOptions;
 
-                // Generate teacher options
-                let teacherOptions = '';
-                teachers.forEach((teacher, index) => {
-                    teacherOptions += `<option value="${teacher}">${teacher}</option>`;
-                });
-                teacherName.innerHTML = teacherOptions;
+            //     // Generate teacher options
+            //     let teacherOptions = '';
+            //     teachers.forEach((teacher, index) => {
+            //         teacherOptions += `<option value="${teacher}">${teacher}</option>`;
+            //     });
+            //     teacherName.innerHTML = teacherOptions;
 
-                // Generate location options
-                let locationOptions = '';
-                locations.forEach(location => {
-                    locationOptions += `<option value="${location}">${location}</option>`;
-                });
-                location.innerHTML = locationOptions;
-            }
+            //     // Generate location options
+            //     let locationOptions = '';
+            //     locations.forEach(location => {
+            //         locationOptions += `<option value="${location}">${location}</option>`;
+            //     });
+            //     location.innerHTML = locationOptions;
+            // }
 
             function getTeacherColor(teacher) {
                 const index = teachers.indexOf(teacher);
