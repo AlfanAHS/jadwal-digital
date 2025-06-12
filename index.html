@@ -1,0 +1,2118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadwal Digital Interaktif</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Tambahkan Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f4f8;
+            scroll-behavior: smooth;
+        }
+        .time-slot {
+            height: 60px;
+            border-bottom: 1px solid #e2e8f0;
+            min-width: 200px;
+        }
+        .subject-card {
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            min-width: 120px;
+            max-width: 100%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+            margin: 2px;
+            padding: 8px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .subject-card:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+        .day-column {
+            position: relative;
+        }
+        .time-label {
+            width: 80px;
+            text-align: right;
+            position: sticky;
+            left: 0;
+            background-color: #f0f4f8;
+            z-index: 5;
+        }
+        .schedule-column {
+            position: relative;
+            border-right: 1px solid #e2e8f0;
+            min-width: 200px;
+            flex-grow: 1;
+        }
+        .schedule-header {
+            position: sticky;
+            top: 0;
+            background-color: white;
+            z-index: 5;
+        }
+        .teacher-summary {
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .teacher-summary:hover {
+            transform: scale(1.02);
+        }
+        .subject-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background-color: white;
+            }
+            .print-container {
+                width: 100% !important;
+                overflow: visible !important;
+            }
+            .subject-card {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+            }
+        }
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+        .schedule-container {
+            display: flex;
+            overflow-x: auto;
+            position: relative;
+        }
+        .time-labels-container {
+            position: sticky;
+            left: 0;
+            z-index: 2;
+            background-color: #f0f4f8;
+        }
+        .schedule-columns-container {
+            display: flex;
+            min-width: min-content;
+            overflow-x: auto;
+        }
+        @media (max-width: 768px) {
+            .subject-card {
+                min-width: 100px;
+                font-size: 0.8rem;
+            }
+            .schedule-column {
+                min-width: 150px;
+            }
+        }
+        .time-range-header {
+            font-weight: 500;
+            padding: 8px;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            background-color: white;
+            z-index: 3;
+            text-align: center;
+        }
+        .more-items-indicator {
+            font-size: 0.7rem;
+            margin-top: 2px;
+        }
+        .schedule-card-modal {
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 300px;
+            width: 100%;
+        }
+        .stacked-card {
+            max-width: 300px;
+            width: 100%;
+        }
+        .draggable-card {
+            cursor: move;
+        }
+        .dragging {
+            opacity: 0.5;
+            transform: scale(1.05);
+        }
+        .dropzone {
+            border: 2px dashed #ccc;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 5px 0;
+            transition: all 0.3s;
+        }
+        .dropzone.active {
+            border-color: #4f46e5;
+            background-color: rgba(238, 242, 255, 0.5);
+        }
+        .dropzone.invalid {
+            border-color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.1);
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        .import-export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .edit-modal-content {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 500px;
+            width: 90%;
+            margin: 0 auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .edit-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .stacked-indicator {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            position: absolute;
+            width: calc(100% - 8px);
+            height: calc(100% - 4px);
+        }
+        .stacked-count {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+
+        .stacked-card-container {
+            position: absolute;
+            width: calc(100% - 8px);
+            left: 4px;
+        }
+
+        .single-card-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .horizontal-card-container {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            gap: 4px;
+            width: 100%;
+            height: 100%;
+            overflow-x: auto;
+            padding: 2px;
+        }
+        .conflict-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #ef4444;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            animation: slideIn 0.3s, fadeOut 0.5s 2.5s forwards;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        .card-actions {
+            display: none;
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+        }
+        .subject-card:hover .card-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .action-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+        .action-btn.edit {
+            color: #3b82f6;
+        }
+        .action-btn.delete {
+            color: #ef4444;
+        }
+        .export-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            align-items: center;
+        }
+        .export-options label {
+            font-size: 14px;
+            margin-right: 5px;
+        }
+        .monthly-day {
+            min-height: 100px;
+            position: relative;
+        }
+        .monthly-event {
+            font-size: 0.75rem;
+            padding: 2px 4px;
+            margin-bottom: 2px;
+            border-radius: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .swal2-popup {
+            max-width: 700px !important;
+        }
+        .time-slot-header {
+            position: sticky;
+            top: 0;
+            background-color: white;
+            z-index: 4;
+            padding: 8px;
+            border-bottom: 1px solid #e2e8f0;
+            min-width: 200px;
+            text-align: center;
+        }
+        .schedule-column-content {
+            position: relative;
+            min-height: calc(60px * 34); /* 17 hours * 2 slots per hour */
+        }
+        .full-width-card {
+            width: calc(100% - 8px);
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Kode HTML tetap sama seperti sebelumnya -->
+    <!-- ... -->
+     <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
+                <h1 class="text-2xl md:text-3xl font-bold mb-2 md:mb-0">Jadwal Digital Interaktif</h1>
+                <div class="flex flex-wrap justify-center gap-2">
+                    <button id="btnDailyView" class="bg-white text-indigo-700 hover:bg-indigo-100 px-3 py-2 rounded-lg font-medium shadow-md transition-all flex items-center">
+                        <span class="mr-1">📅</span> Jadwal Harian
+                    </button>
+                    <button id="btnWeeklyView" class="bg-white text-indigo-700 hover:bg-indigo-100 px-3 py-2 rounded-lg font-medium shadow-md transition-all flex items-center">
+                        <span class="mr-1">📆</span> Rekap Mingguan
+                    </button>
+                    <button id="btnMonthlyView" class="bg-white text-indigo-700 hover:bg-indigo-100 px-3 py-2 rounded-lg font-medium shadow-md transition-all flex items-center">
+                        <span class="mr-1">🗓</span> Kalender Bulanan
+                    </button>
+                    <button id="btnReset" class="bg-white text-indigo-700 hover:bg-indigo-100 px-3 py-2 rounded-lg font-medium shadow-md transition-all flex items-center">
+                        <span class="mr-1">🧹</span> Reset Jadwal
+                    </button>
+                    <button id="btnPrint" class="bg-white text-indigo-700 hover:bg-indigo-100 px-3 py-2 rounded-lg font-medium shadow-md transition-all flex items-center">
+                        <span class="mr-1">🖨</span> Cetak Jadwal
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto px-4 py-6">
+            <!-- Input Form -->
+            <div id="inputForm" class="bg-white rounded-xl shadow-lg p-4 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Input Jadwal Baru</h2>
+                <form id="scheduleForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                        <input type="date" id="scheduleDate" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Waktu Mulai</label>
+                        <select id="startTimeSelect" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                            <!-- Time options will be generated here -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Waktu Selesai</label>
+                        <select id="endTimeSelect" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                            <!-- Time options will be generated here -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Mata Pelajaran</label>
+                        <select id="subjectName" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                            <!-- Subject options will be generated here -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Pengajar</label>
+                        <select id="teacherName" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                            <!-- Teacher options will be generated here -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Lokasi/Ruang</label>
+                        <select id="location" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                            <!-- Location options will be generated here -->
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all">Tambah Jadwal</button>
+                    </div>
+                </form>
+                <div class="import-export-buttons no-print">
+                    <button id="btnExport" class="bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700 transition-all mt-2">
+                        Ekspor Jadwal
+                    </button>
+                    <button id="btnImport" class="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 transition-all mt-2">
+                        Impor Jadwal
+                    </button>
+                    <input type="file" id="importFile" class="hidden" accept=".xlsx,.xls,.csv">
+                </div>
+            </div>
+
+            <!-- Daily View - Vertical -->
+            <div id="dailyView" class="bg-white rounded-xl shadow-lg p-4 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Jadwal Harian</h2>
+                    <div class="flex gap-2 items-center">
+                        <button id="prevDay" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg transition-all">
+                            ◀
+                        </button>
+                        <input type="date" id="currentDate" class="border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button id="nextDay" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg transition-all">
+                            ▶
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-auto print-container" style="max-height: 70vh;">
+                    <div class="schedule-container">
+                        <div class="time-labels-container">
+                            <div class="h-12"></div> <!-- Empty space for alignment -->
+                            <div id="timeLabels" class="flex flex-col">
+                                <!-- Time labels will be generated here -->
+                            </div>
+                        </div>
+                        <div class="schedule-columns-container flex-grow">
+                            <div id="dailySchedule" class="flex">
+                                <!-- Daily schedule will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weekly View (Hidden by default) -->
+            <div id="weeklyView" class="bg-white rounded-xl shadow-lg p-4 mb-6 hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Rekap Mingguan</h2>
+                    <div class="flex gap-2">
+                        <button id="prevWeek" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg transition-all">
+                            ◀
+                        </button>
+                        <span id="currentWeek" class="bg-indigo-100 text-indigo-800 px-4 py-1 rounded-lg font-medium">Minggu 1 Januari 2023</span>
+                        <button id="nextWeek" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg transition-all">
+                            ▶
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Teachers Summary -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Rekap Pengajar</h3>
+                    <div id="teachersSummary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Teachers summary will be generated here -->
+                    </div>
+                </div>
+                
+                <!-- Subjects Summary -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Rekap Mata Pelajaran</h3>
+                    <div id="subjectsSummary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Subjects summary will be generated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly View (Hidden by default) -->
+            <div id="monthlyView" class="bg-white rounded-xl shadow-lg p-4 mb-6 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Kalender Bulanan</h2>
+                    <div class="flex gap-2">
+                        <button id="prevMonth" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg transition-all">
+                            ◀
+                        </button>
+                        <span id="currentMonth" class="bg-indigo-100 text-indigo-800 px-4 py-1 rounded-lg font-medium">Agustus 2023</span>
+                        <button id="nextMonth" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg transition-all">
+                            ▶
+                        </button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-7 gap-1 text-center mb-2">
+                    <div class="font-medium text-gray-500">Min</div>
+                    <div class="font-medium text-gray-500">Sen</div>
+                    <div class="font-medium text-gray-500">Sel</div>
+                    <div class="font-medium text-gray-500">Rab</div>
+                    <div class="font-medium text-gray-500">Kam</div>
+                    <div class="font-medium text-gray-500">Jum</div>
+                    <div class="font-medium text-gray-500">Sab</div>
+                </div>
+                <div id="monthlyCalendar" class="grid grid-cols-7 gap-1">
+                    <!-- Monthly calendar will be generated here -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Stacked Schedule Modal -->
+        <div class="modal fade" id="stackedScheduleModal" tabindex="-1" aria-labelledby="stackedScheduleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="stackedScheduleModalLabel">Jadwal pada Slot Waktu Ini</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="stackedScheduleContent" class="d-flex flex-wrap gap-3">
+                            <!-- Stacked schedule cards will be generated here -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div class="modal fade" id="confirmationModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Konfirmasi</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="confirmationMessage">Apakah Anda yakin ingin menghapus jadwal ini?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="button" id="confirmAction" class="btn btn-danger">Hapus</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Schedule Modal -->
+        <div id="editModal" class="edit-modal-overlay hidden">
+            <div class="edit-modal-content">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Edit Jadwal</h2>
+                <form id="editScheduleForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="hidden" id="editScheduleId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                        <input type="date" id="editScheduleDate" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Waktu Mulai</label>
+                        <select id="editStartTimeSelect" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                            <!-- Time options will be generated here -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Waktu Selesai</label>
+                        <select id="editEndTimeSelect" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                            <!-- Time options will be generated here -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Mata Pelajaran</label>
+                        <select id="editSubjectName" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                            <!-- Subject options will be generated here -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Pengajar</label>
+                        <select id="editTeacherName" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                            <!-- Teacher options will be generated here -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Lokasi/Ruang</label>
+                        <select id="editLocation" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                            <!-- Location options will be generated here -->
+                        </select>
+                    </div>
+                    <div class="md:col-span-2 flex justify-end gap-2">
+                        <button type="button" id="cancelEdit" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-all">Batal</button>
+                        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all">Simpan Perubahan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white py-4 no-print">
+            <div class="container mx-auto px-4 text-center">
+                <p>© 2023 Jadwal Digital Interaktif - Template untuk Lembaga Pendidikan</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Inisialisasi Firebase - GANTI DENGAN KONFIGURASI ANDA
+        const firebaseConfig = {
+            apiKey: "AIzaSyA...",
+            authDomain: "your-project.firebaseapp.com",
+            databaseURL: "https://your-project.firebaseio.com",
+            projectId: "your-project",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123...",
+            appId: "1:123...:web:abc..."
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Data Jadwal - sekarang akan diambil dari Firebase
+            let schedules = [];
+            
+            // Variabel tanggal
+            let currentDate = new Date();
+            let currentWeekStart = getWeekStartDate(currentDate);
+            let currentMonth = currentDate.getMonth();
+            let currentYear = currentDate.getFullYear();
+            let draggedSchedule = null;
+
+            // Data referensi
+            const subjects = [
+                'Matematika', 'Fisika', 'Kimia', 'Biologi', 'Bahasa Indonesia',
+                'Bahasa Inggris', 'Sejarah', 'Geografi', 'Ekonomi', 'Sosiologi',
+                'Seni Budaya', 'PJOK', 'PKn', 'Agama', 'TIK',
+                'Bahasa Jawa', 'Bahasa Mandarin', 'Bahasa Jepang', 'Kewirausahaan', 'BK'
+            ];
+            
+            const teachers = [
+                'Pak Budi', 'Pak Andi', 'Bu Citra', 'Bu Dewi', 'Pak Eko',
+                'Bu Fitri', 'Pak Guntur', 'Bu Hani', 'Pak Irfan', 'Bu Jihan',
+                'Pak Kurnia', 'Bu Lina', 'Pak Maman', 'Bu Nia', 'Pak Oki'
+            ];
+            
+            const locations = [
+                'Ruang 101', 'Ruang 102', 'Ruang 103', 'Ruang 104', 'Ruang 105',
+                'Lab Komputer', 'Lab Kimia', 'Lab Fisika', 'Lab Biologi', 'Aula'
+            ];
+
+            // Warna untuk pengajar
+            const teacherColors = [
+                '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+                '#ec4899', '#14b8a6', '#f97316', '#64748b', '#06b6d4',
+                '#a855f7', '#d946ef', '#0ea5e9', '#84cc16', '#eab308'
+            ];
+
+            // Warna untuk mata pelajaran
+            const subjectColors = [
+                '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
+                '#ec4899', '#f43f5e', '#f97316', '#f59e0b', '#eab308',
+                '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4',
+                '#0ea5e9', '#2563eb', '#1d4ed8', '#7c3aed', '#6d28d9'
+            ];
+
+            // DOM Elements
+            const inputForm = document.getElementById('inputForm');
+            const dailyView = document.getElementById('dailyView');
+            const weeklyView = document.getElementById('weeklyView');
+            const monthlyView = document.getElementById('monthlyView');
+            const currentDateInput = document.getElementById('currentDate');
+            const scheduleDateInput = document.getElementById('scheduleDate');
+            const timeLabels = document.getElementById('timeLabels');
+            const dailySchedule = document.getElementById('dailySchedule');
+            const prevDay = document.getElementById('prevDay');
+            const nextDay = document.getElementById('nextDay');
+            const btnDailyView = document.getElementById('btnDailyView');
+            const btnWeeklyView = document.getElementById('btnWeeklyView');
+            const btnMonthlyView = document.getElementById('btnMonthlyView');
+            const btnReset = document.getElementById('btnReset');
+            const btnPrint = document.getElementById('btnPrint');
+            const prevWeek = document.getElementById('prevWeek');
+            const nextWeek = document.getElementById('nextWeek');
+            const prevMonth = document.getElementById('prevMonth');
+            const nextMonth = document.getElementById('nextMonth');
+            const confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+            const stackedScheduleModal = new bootstrap.Modal(document.getElementById('stackedScheduleModal'));
+            const confirmAction = document.getElementById('confirmAction');
+            const scheduleForm = document.getElementById('scheduleForm');
+            const startTimeSelect = document.getElementById('startTimeSelect');
+            const endTimeSelect = document.getElementById('endTimeSelect');
+            const subjectName = document.getElementById('subjectName');
+            const teacherName = document.getElementById('teacherName');
+            const location = document.getElementById('location');
+            const teachersSummary = document.getElementById('teachersSummary');
+            const subjectsSummary = document.getElementById('subjectsSummary');
+            const currentWeekElement = document.getElementById('currentWeek');
+            const currentMonthElement = document.getElementById('currentMonth');
+            const stackedScheduleContent = document.getElementById('stackedScheduleContent');
+            const btnExport = document.getElementById('btnExport');
+            const btnImport = document.getElementById('btnImport');
+            const importFile = document.getElementById('importFile');
+            const editModal = document.getElementById('editModal');
+            const editScheduleForm = document.getElementById('editScheduleForm');
+            const editScheduleId = document.getElementById('editScheduleId');
+            const editScheduleDate = document.getElementById('editScheduleDate');
+            const editStartTimeSelect = document.getElementById('editStartTimeSelect');
+            const editEndTimeSelect = document.getElementById('editEndTimeSelect');
+            const editSubjectName = document.getElementById('editSubjectName');
+            const editTeacherName = document.getElementById('editTeacherName');
+            const editLocation = document.getElementById('editLocation');
+            const cancelEdit = document.getElementById('cancelEdit');
+
+            // Fungsi untuk berinteraksi dengan Firebase
+            function saveSchedules() {
+                // Simpan ke Firebase dan localStorage sebagai cache
+                database.ref('schedules').set(schedules)
+                    .then(() => {
+                        localStorage.setItem('schedules', JSON.stringify(schedules));
+                        console.log("Data berhasil disimpan ke Firebase");
+                    })
+                    .catch(error => {
+                        console.error("Error saving to Firebase:", error);
+                        // Fallback ke localStorage jika Firebase gagal
+                        localStorage.setItem('schedules', JSON.stringify(schedules));
+                    });
+            }
+
+            function loadSchedules() {
+                // Coba load dari Firebase
+                database.ref('schedules').once('value')
+                    .then(snapshot => {
+                        const data = snapshot.val();
+                        if (data) {
+                            schedules = data;
+                            localStorage.setItem('schedules', JSON.stringify(data));
+                            console.log("Data berhasil dimuat dari Firebase");
+                        } else {
+                            // Fallback ke localStorage jika Firebase kosong
+                            schedules = JSON.parse(localStorage.getItem('schedules')) || [];
+                            console.log("Menggunakan data dari localStorage");
+                        }
+                        renderAllViews();
+                    })
+                    .catch(error => {
+                        console.error("Error loading from Firebase:", error);
+                        // Fallback ke localStorage jika Firebase error
+                        schedules = JSON.parse(localStorage.getItem('schedules')) || [];
+                        renderAllViews();
+                    });
+            }
+
+            // Fungsi untuk menambahkan listener realtime (opsional)
+            function setupRealtimeListener() {
+                database.ref('schedules').on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        schedules = data;
+                        localStorage.setItem('schedules', JSON.stringify(data));
+                        renderAllViews();
+                    }
+                });
+            }
+
+            // Inisialisasi
+            generateTimeOptions();
+            generateDropdownOptions();
+            generateEditFormDropdowns();
+            currentDateInput.valueAsDate = new Date();
+            scheduleDateInput.valueAsDate = new Date();
+            loadSchedules();
+            setupRealtimeListener(); 
+            
+            // Event Listeners
+            btnDailyView.addEventListener('click', () => {
+                inputForm.classList.remove('hidden');
+                dailyView.classList.remove('hidden');
+                weeklyView.classList.add('hidden');
+                monthlyView.classList.add('hidden');
+            });
+
+            btnWeeklyView.addEventListener('click', () => {
+                inputForm.classList.add('hidden');
+                dailyView.classList.add('hidden');
+                weeklyView.classList.remove('hidden');
+                monthlyView.classList.add('hidden');
+            });
+
+            btnMonthlyView.addEventListener('click', () => {
+                inputForm.classList.add('hidden');
+                dailyView.classList.add('hidden');
+                weeklyView.classList.add('hidden');
+                monthlyView.classList.remove('hidden');
+            });
+
+            btnReset.addEventListener('click', () => {
+                showConfirmation('Apakah Anda yakin ingin menghapus semua jadwal?', () => {
+                    schedules = [];
+                    saveSchedules();
+                    renderAllViews();
+                });
+            });
+
+            btnPrint.addEventListener('click', () => {
+                window.print();
+            });
+
+            prevDay.addEventListener('click', () => {
+                const date = new Date(currentDateInput.value);
+                date.setDate(date.getDate() - 1);
+                currentDateInput.valueAsDate = date;
+                renderDailyView();
+            });
+
+            nextDay.addEventListener('click', () => {
+                const date = new Date(currentDateInput.value);
+                date.setDate(date.getDate() + 1);
+                currentDateInput.valueAsDate = date;
+                renderDailyView();
+            });
+
+            currentDateInput.addEventListener('change', () => {
+                renderDailyView();
+            });
+
+            scheduleDateInput.addEventListener('change', () => {
+                currentDateInput.value = scheduleDateInput.value;
+                renderDailyView();
+            });
+
+            prevWeek.addEventListener('click', () => {
+                currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+                updateCurrentWeekDisplay();
+                renderWeeklyView();
+            });
+
+            nextWeek.addEventListener('click', () => {
+                currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+                updateCurrentWeekDisplay();
+                renderWeeklyView();
+            });
+
+            prevMonth.addEventListener('click', () => {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+                updateCurrentMonthDisplay();
+                renderMonthlyView();
+            });
+
+            nextMonth.addEventListener('click', () => {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                updateCurrentMonthDisplay();
+                renderMonthlyView();
+            });
+
+            confirmAction.addEventListener('click', () => {
+                if (confirmAction.dataset.callback) {
+                    window[confirmAction.dataset.callback]();
+                }
+                confirmationModal.hide();
+            });
+
+            scheduleForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                addNewSchedule();
+            });
+
+            btnExport.addEventListener('click', function() {
+                showExportDialog();
+            });
+
+            btnImport.addEventListener('click', () => importFile.click());
+            importFile.addEventListener('change', importSchedules);
+
+            editScheduleForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                updateSchedule();
+            });
+
+            cancelEdit.addEventListener('click', function() {
+                editModal.classList.add('hidden');
+            });
+
+            // Fungsi Utama
+            function generateTimeOptions() {
+                let options = '';
+                for (let hour = 7; hour < 24; hour++) {
+                    for (let minute = 0; minute < 60; minute += 30) {
+                        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                        options += `<option value="${time}">${time}</option>`;
+                    }
+                }
+                startTimeSelect.innerHTML = options;
+                endTimeSelect.innerHTML = options;
+            }
+
+            function generateEditFormDropdowns() {
+                let timeOptions = '';
+                for (let hour = 7; hour < 24; hour++) {
+                    for (let minute = 0; minute < 60; minute += 30) {
+                        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                        timeOptions += `<option value="${time}">${time}</option>`;
+                    }
+                }
+                editStartTimeSelect.innerHTML = timeOptions;
+                editEndTimeSelect.innerHTML = timeOptions;
+
+                let subjectOptions = '';
+                subjects.forEach((subject, index) => {
+                    subjectOptions += `<option value="${subject}">${subject}</option>`;
+                });
+                editSubjectName.innerHTML = subjectOptions;
+
+                let teacherOptions = '';
+                teachers.forEach((teacher, index) => {
+                    teacherOptions += `<option value="${teacher}">${teacher}</option>`;
+                });
+                editTeacherName.innerHTML = teacherOptions;
+
+                let locationOptions = '';
+                locations.forEach(location => {
+                    locationOptions += `<option value="${location}">${location}</option>`;
+                });
+                editLocation.innerHTML = locationOptions;
+            }
+
+            function generateDropdownOptions() {
+                // Generate subject options
+                let subjectOptions = '';
+                subjects.forEach((subject, index) => {
+                    subjectOptions += `<option value="${subject}">${subject}</option>`;
+                });
+                subjectName.innerHTML = subjectOptions;
+
+                // Generate teacher options
+                let teacherOptions = '';
+                teachers.forEach((teacher, index) => {
+                    teacherOptions += `<option value="${teacher}">${teacher}</option>`;
+                });
+                teacherName.innerHTML = teacherOptions;
+
+                // Generate location options
+                let locationOptions = '';
+                locations.forEach(location => {
+                    locationOptions += `<option value="${location}">${location}</option>`;
+                });
+                location.innerHTML = locationOptions;
+            }
+
+            function getTeacherColor(teacher) {
+                const index = teachers.indexOf(teacher);
+                return index >= 0 ? teacherColors[index % teacherColors.length] : '#4f46e5';
+            }
+
+            function getSubjectColor(subject) {
+                const index = subjects.indexOf(subject);
+                return index >= 0 ? subjectColors[index % subjectColors.length] : '#3b82f6';
+            }
+
+            function updateCurrentWeekDisplay() {
+                const weekEnd = new Date(currentWeekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                
+                const options = { day: 'numeric', month: 'long', year: 'numeric' };
+                const startStr = currentWeekStart.toLocaleDateString('id-ID', options);
+                const endStr = weekEnd.toLocaleDateString('id-ID', options);
+                
+                currentWeekElement.textContent = `${startStr} - ${endStr}`;
+            }
+
+            function updateCurrentMonthDisplay() {
+                const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                currentMonthElement.textContent = `${months[currentMonth]} ${currentYear}`;
+            }
+
+            function renderDailyView() {
+                // Clear previous content
+                timeLabels.innerHTML = '';
+                dailySchedule.innerHTML = '';
+
+                // Generate time labels
+                for (let hour = 7; hour < 24; hour++) {
+                    for (let minute = 0; minute < 60; minute += 30) {
+                        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                        const timeLabel = document.createElement('div');
+                        timeLabel.className = 'time-slot flex items-start';
+                        timeLabel.innerHTML = `<div class="time-label pr-2 text-gray-500">${time}</div>`;
+                        timeLabels.appendChild(timeLabel);
+                    }
+                }
+
+                // Get selected date
+                const selectedDate = currentDateInput.valueAsDate || new Date();
+                const selectedDateStr = selectedDate.toISOString().split('T')[0];
+                
+                // Get schedules for selected date
+                const daySchedules = schedules.filter(schedule => schedule.date === selectedDateStr);
+                
+                // Group schedules by time slot
+                const timeSlots = {};
+                
+                daySchedules.forEach(schedule => {
+                    const key = `${schedule.startTime}-${schedule.endTime}`;
+                    if (!timeSlots[key]) {
+                        timeSlots[key] = [];
+                    }
+                    timeSlots[key].push(schedule);
+                });
+                
+                // Create columns for each time slot group
+                Object.keys(timeSlots).forEach(timeSlot => {
+                    const [startTime, endTime] = timeSlot.split('-');
+                    const schedulesInSlot = timeSlots[timeSlot];
+                    
+                    // Create column for this time slot
+                    const scheduleColumn = document.createElement('div');
+                    scheduleColumn.className = 'schedule-column';
+                    
+                    // Add time slot header
+                    const header = document.createElement('div');
+                    header.className = 'time-slot-header';
+                    header.textContent = `${startTime} - ${endTime}`;
+                    scheduleColumn.appendChild(header);
+                    
+                    // Add column content container
+                    const columnContent = document.createElement('div');
+                    columnContent.className = 'schedule-column-content';
+                    
+                    // Calculate time slot position and height
+                    const slotHeight = 60; // height for 30 minutes
+                    const startParts = startTime.split(':').map(Number);
+                    const endParts = endTime.split(':').map(Number);
+                    const startMinutes = startParts[0] * 60 + startParts[1];
+                    const endMinutes = endParts[0] * 60 + endParts[1];
+                    const startOffset = ((startMinutes - 420) / 30) * slotHeight; // 7:00 = 420 minutes
+                    const duration = ((endMinutes - startMinutes) / 30) * slotHeight;
+                    
+                    // Create container for schedule cards
+                    // Create container for schedule cards
+                    // Create container for schedule cards
+                    const cardContainer = document.createElement('div');
+                    cardContainer.className = 'stacked-card-container';
+                    cardContainer.style.top = `${startOffset}px`;
+                    cardContainer.style.height = `${duration}px`;
+
+                    if (schedulesInSlot.length === 1) {
+                        // Single card layout
+                        const scheduleElement = createScheduleCard(schedulesInSlot[0]);
+                        scheduleElement.classList.add('full-width-card');
+                        scheduleElement.style.height = '100%';
+                        cardContainer.appendChild(scheduleElement);
+                    } 
+                    else if (schedulesInSlot.length <= 3) {
+                        // Horizontal layout for 2-3 cards
+                        const horizontalContainer = document.createElement('div');
+                        horizontalContainer.className = 'horizontal-card-container';
+                        
+                        schedulesInSlot.forEach(schedule => {
+                            const scheduleElement = createScheduleCard(schedule);
+                            horizontalContainer.appendChild(scheduleElement);
+                        });
+                        
+                        cardContainer.appendChild(horizontalContainer);
+                    } else {
+                        // Stacked indicator for more than 3 cards
+                        const stackedIndicator = document.createElement('div');
+                        stackedIndicator.className = 'subject-card stacked-indicator';
+                        stackedIndicator.style.backgroundColor = '#64748b';
+                        stackedIndicator.style.color = getContrastColor('#64748b');
+                        stackedIndicator.style.width = '100%';
+                        stackedIndicator.style.height = '100%';
+                        stackedIndicator.innerHTML = `
+                            <div class="stacked-count">${schedulesInSlot.length}</div>
+                            <div>Jadwal</div>
+                        `;
+                        stackedIndicator.addEventListener('click', () => {
+                            showStackedSchedulesModal(schedulesInSlot);
+                        });
+                        cardContainer.appendChild(stackedIndicator);
+                    }
+                    
+                    columnContent.appendChild(cardContainer);
+                    scheduleColumn.appendChild(columnContent);
+                    
+                    // Dropzone events for the column
+                    scheduleColumn.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        scheduleColumn.classList.add('dropzone', 'active');
+                    });
+                    
+                    scheduleColumn.addEventListener('dragleave', () => {
+                        scheduleColumn.classList.remove('active');
+                    });
+                    
+                    scheduleColumn.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        scheduleColumn.classList.remove('active');
+                        
+                        if (draggedSchedule) {
+                            const newStartTime = startTime;
+                            const newEndTime = endTime;
+                            
+                            // Check for conflicts before moving
+                            if (draggedSchedule.schedules) {
+                                // Moving a stacked group
+                                const hasConflict = draggedSchedule.schedules.some(schedule => {
+                                    return checkScheduleConflict({
+                                        ...schedule,
+                                        startTime: newStartTime,
+                                        endTime: newEndTime
+                                    }, schedules.findIndex(s => s.id === schedule.id));
+                                });
+                                
+                                if (hasConflict) {
+                                    showConflictNotification('Terdapat konflik jadwal saat memindahkan grup');
+                                    return;
+                                }
+                                
+                                // Update schedules if no conflict
+                                draggedSchedule.schedules.forEach(schedule => {
+                                    const index = schedules.findIndex(s => s.id === schedule.id);
+                                    if (index !== -1) {
+                                        schedules[index].startTime = newStartTime;
+                                        schedules[index].endTime = newEndTime;
+                                    }
+                                });
+                            } else {
+                                // Moving a single schedule
+                                const hasConflict = checkScheduleConflict({
+                                    ...draggedSchedule.schedule,
+                                    startTime: newStartTime,
+                                    endTime: newEndTime
+                                }, schedules.findIndex(s => s.id === draggedSchedule.schedule.id));
+                                
+                                if (hasConflict) {
+                                    showConflictNotification('Terdapat konflik jadwal saat memindahkan');
+                                    return;
+                                }
+                                
+                                // Update schedule if no conflict
+                                const index = schedules.findIndex(s => s.id === draggedSchedule.schedule.id);
+                                if (index !== -1) {
+                                    schedules[index].startTime = newStartTime;
+                                    schedules[index].endTime = newEndTime;
+                                }
+                            }
+                            
+                            saveSchedules();
+                            renderDailyView();
+                        }
+                    });
+                    
+                    dailySchedule.appendChild(scheduleColumn);
+                });
+            }
+
+            function createScheduleCard(schedule) {
+                const scheduleElement = document.createElement('div');
+                scheduleElement.className = 'subject-card draggable-card';
+                scheduleElement.style.backgroundColor = getTeacherColor(schedule.teacher);
+                scheduleElement.style.color = getContrastColor(getTeacherColor(schedule.teacher));
+                
+                scheduleElement.innerHTML = `
+                    <div class="font-semibold text-sm whitespace-normal">${schedule.subject}</div>
+                    <div class="text-xs whitespace-normal">${schedule.teacher}</div>
+                    <div class="text-xs whitespace-normal">${schedule.location}</div>
+                    <div class="card-actions">
+                        <div class="action-btn edit" data-id="${schedule.id}">✏️</div>
+                        <div class="action-btn delete" data-id="${schedule.id}">🗑️</div>
+                    </div>
+                `;
+                
+                // Drag events for individual card
+                scheduleElement.draggable = true;
+                scheduleElement.dataset.id = schedule.id;
+                
+                scheduleElement.addEventListener('dragstart', (e) => {
+                    draggedSchedule = {
+                        element: scheduleElement,
+                        schedule: schedule
+                    };
+                    scheduleElement.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', schedule.id);
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                
+                scheduleElement.addEventListener('dragend', () => {
+                    scheduleElement.classList.remove('dragging');
+                });
+                
+                // Click to edit or delete
+                scheduleElement.querySelector('.action-btn.edit').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showEditModal(schedule.id);
+                });
+                
+                scheduleElement.querySelector('.action-btn.delete').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showConfirmation('Apakah Anda yakin ingin menghapus jadwal ini?', () => {
+                        const index = schedules.findIndex(s => s.id === schedule.id);
+                        if (index !== -1) {
+                            schedules.splice(index, 1);
+                            saveSchedules();
+                            renderAllViews();
+                        }
+                    });
+                });
+                
+                return scheduleElement;
+            }
+
+            // Fungsi untuk menangani konflik
+            function showConflictNotification(message) {
+                const notification = document.createElement('div');
+                notification.className = 'conflict-notification';
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 3000);
+            }
+
+            function showStackedSchedulesModal(schedules) {
+                stackedScheduleContent.innerHTML = '';
+                
+                // Update modal title with time range
+                const modalTitle = document.getElementById('stackedScheduleModalLabel');
+                const firstSchedule = schedules[0];
+                modalTitle.textContent = `Jadwal ${firstSchedule.startTime} - ${firstSchedule.endTime}`;
+                
+                // Create a card for each schedule
+                schedules.forEach((schedule) => {
+                    const card = document.createElement('div');
+                    card.className = 'schedule-card-modal p-3 stacked-card';
+                    card.style.backgroundColor = getTeacherColor(schedule.teacher);
+                    card.style.color = getContrastColor(getTeacherColor(schedule.teacher));
+                    
+                    card.innerHTML = `
+                        <div class="fw-bold mb-1">${schedule.subject}</div>
+                        <div class="mb-1">Pengajar: ${schedule.teacher}</div>
+                        <div class="mb-1">Ruang: ${schedule.location}</div>
+                        <div class="mb-2">Waktu: ${schedule.startTime} - ${schedule.endTime}</div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-light btn-edit" data-id="${schedule.id}">Edit</button>
+                            <button class="btn btn-sm btn-danger btn-delete" data-id="${schedule.id}">Hapus</button>
+                        </div>
+                    `;
+                    
+                    stackedScheduleContent.appendChild(card);
+                });
+                
+                // Add event listeners to buttons in modal
+                document.querySelectorAll('.btn-edit').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = parseInt(e.target.dataset.id);
+                        showEditModal(id);
+                        stackedScheduleModal.hide();
+                    });
+                });
+                
+                document.querySelectorAll('.btn-delete').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = parseInt(e.target.dataset.id);
+                        deleteSchedule(id);
+                    });
+                });
+                
+                stackedScheduleModal.show();
+            }
+
+            function deleteSchedule(id) {
+                showConfirmation('Apakah Anda yakin ingin menghapus jadwal ini?', () => {
+                    const index = schedules.findIndex(s => s.id === id);
+                    if (index !== -1) {
+                        schedules.splice(index, 1);
+                        saveSchedules();
+                        renderAllViews();
+                        stackedScheduleModal.hide();
+                    }
+                });
+            }
+
+            function showEditModal(id) {
+                const schedule = schedules.find(s => s.id === id);
+                
+                if (schedule) {
+                    // Fill the edit form with schedule data
+                    editScheduleId.value = schedule.id;
+                    editScheduleDate.value = schedule.date;
+                    
+                    // Set time selects
+                    editStartTimeSelect.value = schedule.startTime;
+                    editEndTimeSelect.value = schedule.endTime;
+                    
+                    // Set subject, teacher, location
+                    editSubjectName.value = schedule.subject;
+                    editTeacherName.value = schedule.teacher;
+                    editLocation.value = schedule.location;
+                    
+                    // Show the modal
+                    editModal.classList.remove('hidden');
+                }
+            }
+
+            function updateSchedule() {
+                const id = parseInt(editScheduleId.value);
+                const scheduleIndex = schedules.findIndex(s => s.id === id);
+                
+                if (scheduleIndex !== -1) {
+                    const updatedSchedule = {
+                        id: id,
+                        date: editScheduleDate.value,
+                        startTime: editStartTimeSelect.value,
+                        endTime: editEndTimeSelect.value,
+                        subject: editSubjectName.value,
+                        teacher: editTeacherName.value,
+                        location: editLocation.value
+                    };
+
+                    // Validasi waktu
+                    if (updatedSchedule.startTime >= updatedSchedule.endTime) {
+                        alert('Waktu selesai harus setelah waktu mulai');
+                        return;
+                    }
+
+                    // Validasi konflik jadwal (exclude the schedule being edited)
+                    const hasConflict = checkScheduleConflict(updatedSchedule, scheduleIndex);
+                    if (hasConflict) {
+                        return;
+                    }
+
+                    // Update the schedule
+                    schedules[scheduleIndex] = updatedSchedule;
+                    saveSchedules();
+                    renderAllViews();
+                    
+                    // Close the modal
+                    editModal.classList.add('hidden');
+                }
+            }
+
+            function renderWeeklyView() {
+                // Calculate week range
+                const weekEnd = new Date(currentWeekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                
+                // Filter schedules for this week
+                const weekSchedules = schedules.filter(schedule => {
+                    const scheduleDate = new Date(schedule.date);
+                    return scheduleDate >= currentWeekStart && scheduleDate <= weekEnd;
+                });
+                
+                // Calculate teacher summary
+                const teacherStats = {};
+                
+                weekSchedules.forEach(schedule => {
+                    if (!teacherStats[schedule.teacher]) {
+                        teacherStats[schedule.teacher] = {
+                            hours: 0,
+                            subjects: new Set(),
+                            sessions: [],
+                            color: getTeacherColor(schedule.teacher)
+                        };
+                    }
+                    
+                    // Calculate duration in hours
+                    const startParts = schedule.startTime.split(':');
+                    const endParts = schedule.endTime.split(':');
+                    const duration = (parseInt(endParts[0]) - parseInt(startParts[0])) + 
+                                    (parseInt(endParts[1]) - parseInt(startParts[1])) / 60;
+                    
+                    teacherStats[schedule.teacher].hours += duration;
+                    teacherStats[schedule.teacher].subjects.add(schedule.subject);
+                    teacherStats[schedule.teacher].sessions.push({
+                        date: schedule.date,
+                        subject: schedule.subject,
+                        startTime: schedule.startTime,
+                        endTime: schedule.endTime,
+                        duration: duration,
+                        location: schedule.location
+                    });
+                });
+                
+                // Render teacher summary
+                teachersSummary.innerHTML = '';
+                Object.entries(teacherStats).forEach(([teacher, stats]) => {
+                    const teacherCard = document.createElement('div');
+                    teacherCard.className = 'teacher-summary';
+                    teacherCard.style.backgroundColor = stats.color;
+                    teacherCard.style.color = getContrastColor(stats.color);
+                    
+                    teacherCard.innerHTML = `
+                        <div class="font-bold">${teacher}</div>
+                        <div class="text-sm mt-1">Total Jam: ${stats.hours.toFixed(1)} jam</div>
+                        <div class="text-sm">Mata Pelajaran: ${[...stats.subjects].join(', ')}</div>
+                    `;
+                    
+                    teacherCard.addEventListener('click', () => {
+                        showTeacherDetail(teacher, stats);
+                    });
+                    
+                    teachersSummary.appendChild(teacherCard);
+                });
+                
+                // Calculate subject summary
+                const subjectStats = {};
+                
+                weekSchedules.forEach(schedule => {
+                    if (!subjectStats[schedule.subject]) {
+                        subjectStats[schedule.subject] = {
+                            hours: 0,
+                            teachers: new Set(),
+                            sessions: [],
+                            color: getSubjectColor(schedule.subject)
+                        };
+                    }
+                    
+                    // Calculate duration in hours
+                    const startParts = schedule.startTime.split(':');
+                    const endParts = schedule.endTime.split(':');
+                    const duration = (parseInt(endParts[0]) - parseInt(startParts[0])) + 
+                                    (parseInt(endParts[1]) - parseInt(startParts[1])) / 60;
+                    
+                    subjectStats[schedule.subject].hours += duration;
+                    subjectStats[schedule.subject].teachers.add(schedule.teacher);
+                    subjectStats[schedule.subject].sessions.push({
+                        date: schedule.date,
+                        teacher: schedule.teacher,
+                        startTime: schedule.startTime,
+                        endTime: schedule.endTime,
+                        duration: duration,
+                        location: schedule.location
+                    });
+                });
+                
+                // Render subject summary
+                subjectsSummary.innerHTML = '';
+                Object.entries(subjectStats).forEach(([subject, stats]) => {
+                    const subjectCard = document.createElement('div');
+                    subjectCard.className = 'teacher-summary';
+                    subjectCard.style.backgroundColor = stats.color;
+                    subjectCard.style.color = getContrastColor(stats.color);
+                    
+                    subjectCard.innerHTML = `
+                        <div class="font-bold">${subject}</div>
+                        <div class="text-sm mt-1">Total Jam: ${stats.hours.toFixed(1)} jam</div>
+                        <div class="text-sm">Pengajar: ${[...stats.teachers].join(', ')}</div>
+                    `;
+                    
+                    subjectCard.addEventListener('click', () => {
+                        showSubjectDetail(subject, stats);
+                    });
+                    
+                    subjectsSummary.appendChild(subjectCard);
+                });
+            }
+
+            function renderMonthlyView() {
+                const monthlyCalendar = document.getElementById('monthlyCalendar');
+                monthlyCalendar.innerHTML = '';
+
+                // Get first day of month and total days in month
+                const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+                const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                
+                // Get previous month days
+                const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
+                
+                // Create empty cells for days before the first day of the month
+                for (let i = 0; i < firstDay; i++) {
+                    const dayCell = document.createElement('div');
+                    dayCell.className = 'monthly-day bg-gray-100 p-1 border border-gray-200 text-gray-400';
+                    dayCell.textContent = prevMonthDays - firstDay + i + 1;
+                    monthlyCalendar.appendChild(dayCell);
+                }
+                
+                // Create cells for each day of the month
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayCell = document.createElement('div');
+                    dayCell.className = 'monthly-day bg-white p-1 border border-gray-200';
+                    
+                    const dayHeader = document.createElement('div');
+                    dayHeader.className = 'font-medium text-right mb-1';
+                    dayHeader.textContent = day;
+                    dayCell.appendChild(dayHeader);
+                    
+                    // Find events for this day
+                    const date = new Date(currentYear, currentMonth, day);
+                    const isoDate = date.toISOString().split('T')[0];
+                    
+                    // Find schedules for this date
+                    const dayEvents = schedules.filter(schedule => schedule.date === isoDate);
+                    
+                    // Add events to the day cell
+                    dayEvents.forEach(event => {
+                        const eventElement = document.createElement('div');
+                        eventElement.className = 'monthly-event text-xs p-1 mb-1 rounded truncate';
+                        eventElement.style.backgroundColor = getTeacherColor(event.teacher);
+                        eventElement.style.color = getContrastColor(getTeacherColor(event.teacher));
+                        
+                        eventElement.textContent = `${event.subject} (${event.teacher})`;
+                        
+                        dayCell.appendChild(eventElement);
+                    });
+                    
+                    monthlyCalendar.appendChild(dayCell);
+                }
+                
+                // Calculate total cells needed (42 cells for 6 weeks)
+                const totalCells = 42;
+                const cellsUsed = firstDay + daysInMonth;
+                const nextMonthDays = totalCells - cellsUsed;
+                
+                // Create empty cells for days after the last day of the month
+                for (let i = 1; i <= nextMonthDays; i++) {
+                    const dayCell = document.createElement('div');
+                    dayCell.className = 'monthly-day bg-gray-100 p-1 border border-gray-200 text-gray-400';
+                    dayCell.textContent = i;
+                    monthlyCalendar.appendChild(dayCell);
+                }
+            }
+
+            function showTeacherDetail(teacher, stats) {
+                const modal = new bootstrap.Modal(document.createElement('div'));
+                const modalContent = `
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header" style="border-bottom-color: ${stats.color}">
+                                <h5 class="modal-title" style="color: ${stats.color}">Detail Pengajar: ${teacher}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-4">
+                                    <h4 class="font-semibold text-lg mb-2">Total Jam Mengajar: ${stats.hours.toFixed(1)} jam</h4>
+                                    <h4 class="font-semibold mb-2">Sesi Mengajar:</h4>
+                                    <div class="space-y-2">
+                                        ${getTeacherSessionsHtml(stats)}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                modal._element.innerHTML = modalContent;
+                modal.show();
+            }
+
+            function getTeacherSessionsHtml(stats) {
+                let html = '';
+                
+                // Sort sessions by date and time
+                stats.sessions.sort((a, b) => {
+                    const dateCompare = new Date(a.date) - new Date(b.date);
+                    if (dateCompare !== 0) return dateCompare;
+                    return a.startTime.localeCompare(b.startTime);
+                });
+                
+                // Group sessions by date
+                const sessionsByDate = {};
+                stats.sessions.forEach(session => {
+                    if (!sessionsByDate[session.date]) {
+                        sessionsByDate[session.date] = [];
+                    }
+                    sessionsByDate[session.date].push(session);
+                });
+                
+                // Add sessions grouped by date
+                Object.entries(sessionsByDate).forEach(([date, sessions]) => {
+                    const dateObj = new Date(date);
+                    const dateStr = dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
+                    
+                    html += `<div class="border-b pb-2 mb-2">
+                        <div class="font-medium">${dateStr}</div>`;
+                    
+                    sessions.forEach(session => {
+                        const color = getTeacherColor(session.teacher);
+                        html += `<div class="pl-4 py-1">
+                            <span class="subject-badge" style="background-color: ${color}; color: ${getContrastColor(color)}">${session.subject}</span>
+                            <span>${session.startTime} - ${session.endTime} (${session.duration.toFixed(1)} jam)</span>
+                            <div class="text-xs text-gray-500">${session.location}</div>
+                        </div>`;
+                    });
+                    
+                    html += `</div>`;
+                });
+                
+                return html;
+            }
+
+            function showSubjectDetail(subject, stats) {
+                const modal = new bootstrap.Modal(document.createElement('div'));
+                const modalContent = `
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header" style="border-bottom-color: ${stats.color}">
+                                <h5 class="modal-title" style="color: ${stats.color}">Detail Mata Pelajaran: ${subject}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-4">
+                                    <h4 class="font-semibold text-lg mb-2">Total Jam: ${stats.hours.toFixed(1)} jam</h4>
+                                    <h4 class="font-semibold mb-2">Sesi Pembelajaran:</h4>
+                                    <div class="space-y-2">
+                                        ${getSubjectSessionsHtml(stats)}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                modal._element.innerHTML = modalContent;
+                modal.show();
+            }
+
+            function getSubjectSessionsHtml(stats) {
+                let html = '';
+                
+                // Sort sessions by date and time
+                stats.sessions.sort((a, b) => {
+                    const dateCompare = new Date(a.date) - new Date(b.date);
+                    if (dateCompare !== 0) return dateCompare;
+                    return a.startTime.localeCompare(b.startTime);
+                });
+                
+                // Group sessions by date
+                const sessionsByDate = {};
+                stats.sessions.forEach(session => {
+                    if (!sessionsByDate[session.date]) {
+                        sessionsByDate[session.date] = [];
+                    }
+                    sessionsByDate[session.date].push(session);
+                });
+                
+                // Add sessions grouped by date
+                Object.entries(sessionsByDate).forEach(([date, sessions]) => {
+                    const dateObj = new Date(date);
+                    const dateStr = dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
+                    
+                    html += `<div class="border-b pb-2 mb-2">
+                        <div class="font-medium">${dateStr}</div>`;
+                    
+                    sessions.forEach(session => {
+                        const teacherColor = getTeacherColor(session.teacher);
+                        html += `<div class="pl-4 py-1">
+                            <span class="font-medium">${session.teacher}</span>
+                            <span>${session.startTime} - ${session.endTime} (${session.duration.toFixed(1)} jam)</span>
+                            <div class="text-xs text-gray-500">${session.location}</div>
+                        </div>`;
+                    });
+                    
+                    html += `</div>`;
+                });
+                
+                return html;
+            }
+
+            // Fungsi untuk menambahkan jadwal baru
+            function addNewSchedule() {
+                const newSchedule = {
+                    id: Date.now(), // ID unik berdasarkan timestamp
+                    date: scheduleDateInput.value,
+                    startTime: startTimeSelect.value,
+                    endTime: endTimeSelect.value,
+                    subject: subjectName.value,
+                    teacher: teacherName.value,
+                    location: location.value
+                };
+
+                // Validasi waktu
+                if (newSchedule.startTime >= newSchedule.endTime) {
+                    alert('Waktu selesai harus setelah waktu mulai');
+                    return;
+                }
+
+                // Validasi input
+                if (!newSchedule.subject || !newSchedule.teacher || !newSchedule.location) {
+                    alert('Semua field harus diisi');
+                    return;
+                }
+
+                // Validasi konflik jadwal
+                const hasConflict = checkScheduleConflict(newSchedule);
+                if (hasConflict) {
+                    return;
+                }
+
+                schedules.push(newSchedule);
+                saveSchedules(); // Sekarang menyimpan ke Firebase
+                renderAllViews();
+                
+                // Reset form
+                scheduleForm.reset();
+                scheduleDateInput.value = newSchedule.date;
+            }
+
+            // Fungsi untuk mengecek konflik jadwal
+            function checkScheduleConflict(newSchedule, excludeIndex = -1) {
+                const startTime = newSchedule.startTime;
+                const endTime = newSchedule.endTime;
+                const date = newSchedule.date;
+                const teacher = newSchedule.teacher;
+                const location = newSchedule.location;
+
+                // Check if teacher is already scheduled at this time
+                const teacherConflict = schedules.some((schedule, index) => {
+                    if (excludeIndex !== -1 && index === excludeIndex) return false;
+                    return schedule.date === date && 
+                        schedule.teacher === teacher &&
+                        ((startTime >= schedule.startTime && startTime < schedule.endTime) ||
+                            (endTime > schedule.startTime && endTime <= schedule.endTime) ||
+                            (startTime <= schedule.startTime && endTime >= schedule.endTime));
+                });
+
+                if (teacherConflict) {
+                    showConflictNotification(`Pengajar ${teacher} sudah memiliki jadwal pada waktu tersebut`);
+                    return true;
+                }
+
+                // Check if location is already booked at this time
+                const locationConflict = schedules.some((schedule, index) => {
+                    if (excludeIndex !== -1 && index === excludeIndex) return false;
+                    return schedule.date === date && 
+                        schedule.location === location &&
+                        ((startTime >= schedule.startTime && startTime < schedule.endTime) ||
+                            (endTime > schedule.startTime && endTime <= schedule.endTime) ||
+                            (startTime <= schedule.startTime && endTime >= schedule.endTime));
+                });
+
+                if (locationConflict) {
+                    showConflictNotification(`Ruangan ${location} sudah digunakan pada waktu tersebut`);
+                    return true;
+                }
+
+                return false;
+            }
+
+            function saveSchedules() {
+                localStorage.setItem('schedules', JSON.stringify(schedules));
+            }
+
+            // Fungsi untuk merender semua view
+            function renderAllViews() {
+                renderDailyView();
+                renderWeeklyView();
+                renderMonthlyView();
+            }
+
+            function showConfirmation(message, callback) {
+                document.getElementById('confirmationMessage').textContent = message;
+                confirmAction.dataset.callback = 'confirmationCallback';
+                window.confirmationCallback = callback;
+                confirmationModal.show();
+            }
+
+            // Fungsi untuk mendapatkan warna kontras
+            function getContrastColor(hexColor) {
+                // Convert hex to RGB
+                const r = parseInt(hexColor.substr(1, 2), 16);
+                const g = parseInt(hexColor.substr(3, 2), 16);
+                const b = parseInt(hexColor.substr(5, 2), 16);
+                
+                // Calculate luminance
+                const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                
+                // Return black or white depending on luminance
+                return luminance > 0.5 ? '#000000' : '#ffffff';
+            }
+
+            // Fungsi untuk mendapatkan awal minggu
+            function getWeekStartDate(date) {
+                const day = date.getDay();
+                const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+                return new Date(date.setDate(diff));
+            }
+
+            function showExportDialog() {
+                Swal.fire({
+                    title: 'Pilih Rentang Ekspor Jadwal',
+                    width: 700,
+                    html: `
+                        <div class="text-left mb-4">
+                            <label class="block mb-2"><input type="radio" name="exportRange" value="all" checked class="mr-2"> Semua Jadwal</label>
+                            <label class="block mb-2"><input type="radio" name="exportRange" value="range" class="mr-2"> Berdasarkan Tanggal:</label>
+                            <div class="flex gap-2 mb-4">
+                                <input type="date" id="startDate" class="swal2-input flex-1">
+                                <input type="date" id="endDate" class="swal2-input flex-1">
+                            </div>
+                            <label class="block mb-2"><input type="radio" name="exportRange" value="month" class="mr-2"> Berdasarkan Bulan:</label>
+                            <input type="month" id="monthExport" class="swal2-input w-full">
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Ekspor',
+                    cancelButtonText: 'Batal',
+                    focusConfirm: false,
+                    preConfirm: () => {
+                        const mode = document.querySelector('input[name="exportRange"]:checked').value;
+                        let start, end;
+                        
+                        if (mode === 'range') {
+                            start = document.getElementById('startDate').value;
+                            end = document.getElementById('endDate').value;
+                            if (!start || !end) {
+                                Swal.showValidationMessage('Harap pilih rentang tanggal');
+                                return false;
+                            }
+                            if (start > end) {
+                                Swal.showValidationMessage('Tanggal mulai tidak boleh setelah tanggal selesai');
+                                return false;
+                            }
+                        } else if (mode === 'month') {
+                            const monthVal = document.getElementById('monthExport').value;
+                            if (!monthVal) {
+                                Swal.showValidationMessage('Harap pilih bulan');
+                                return false;
+                            }
+                            start = monthVal + '-01';
+                            const [year, month] = monthVal.split('-');
+                            end = new Date(year, month, 0).toISOString().split('T')[0];
+                        }
+                        
+                        return { mode, start, end };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const { mode, start, end } = result.value;
+                        let filteredSchedules = schedules;
+                        
+                        if (mode === 'range') {
+                            filteredSchedules = schedules.filter(s => s.date >= start && s.date <= end);
+                        } else if (mode === 'month') {
+                            const month = start.substring(0, 7);
+                            filteredSchedules = schedules.filter(s => s.date.startsWith(month));
+                        }
+                        
+                        if (filteredSchedules.length === 0) {
+                            Swal.fire('Tidak Ada Data', 'Tidak ada jadwal dalam rentang yang dipilih', 'info');
+                            return;
+                        }
+                        
+                        exportToExcel(filteredSchedules);
+                    }
+                });
+            }
+
+            function exportToExcel(schedulesToExport) {
+                // Prepare data for export
+                const formattedData = schedulesToExport.map(schedule => ({
+                    Tanggal: schedule.date,
+                    'Waktu Mulai': schedule.startTime,
+                    'Waktu Selesai': schedule.endTime,
+                    'Mata Pelajaran': schedule.subject,
+                    Pengajar: schedule.teacher,
+                    Lokasi: schedule.location
+                }));
+                
+                // Create worksheet
+                const ws = XLSX.utils.json_to_sheet(formattedData);
+                
+                // Create workbook
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Jadwal");
+                
+                // Export to file
+                const dateStr = new Date().toISOString().split('T')[0];
+                XLSX.writeFile(wb, `jadwal-${dateStr}.xlsx`);
+            }
+
+            function showExportDialog() {
+                Swal.fire({
+                    title: 'Pilih Rentang Ekspor Jadwal',
+                    width: 700,
+                    html: `
+                        <div class="text-left mb-4">
+                            <label class="block mb-2"><input type="radio" name="exportRange" value="all" checked class="mr-2"> Semua Jadwal</label>
+                            <label class="block mb-2"><input type="radio" name="exportRange" value="range" class="mr-2"> Berdasarkan Tanggal:</label>
+                            <div class="flex gap-2 mb-4">
+                                <input type="date" id="startDate" class="swal2-input flex-1">
+                                <input type="date" id="endDate" class="swal2-input flex-1">
+                            </div>
+                            <label class="block mb-2"><input type="radio" name="exportRange" value="month" class="mr-2"> Berdasarkan Bulan:</label>
+                            <input type="month" id="monthExport" class="swal2-input w-full">
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Ekspor',
+                    cancelButtonText: 'Batal',
+                    focusConfirm: false,
+                    preConfirm: () => {
+                        const mode = document.querySelector('input[name="exportRange"]:checked').value;
+                        let start, end;
+                        
+                        if (mode === 'range') {
+                            start = document.getElementById('startDate').value;
+                            end = document.getElementById('endDate').value;
+                            if (!start || !end) {
+                                Swal.showValidationMessage('Harap pilih rentang tanggal');
+                                return false;
+                            }
+                            if (start > end) {
+                                Swal.showValidationMessage('Tanggal mulai tidak boleh setelah tanggal selesai');
+                                return false;
+                            }
+                        } else if (mode === 'month') {
+                            const monthVal = document.getElementById('monthExport').value;
+                            if (!monthVal) {
+                                Swal.showValidationMessage('Harap pilih bulan');
+                                return false;
+                            }
+                            start = monthVal + '-01';
+                            const [year, month] = monthVal.split('-');
+                            end = new Date(year, month, 0).toISOString().split('T')[0];
+                        }
+                        
+                        return { mode, start, end };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const { mode, start, end } = result.value;
+                        let filteredSchedules = schedules;
+                        
+                        if (mode === 'range') {
+                            filteredSchedules = schedules.filter(s => s.date >= start && s.date <= end);
+                        } else if (mode === 'month') {
+                            const month = start.substring(0, 7);
+                            filteredSchedules = schedules.filter(s => s.date.startsWith(month));
+                        }
+                        
+                        if (filteredSchedules.length === 0) {
+                            Swal.fire('Tidak Ada Data', 'Tidak ada jadwal dalam rentang yang dipilih', 'info');
+                            return;
+                        }
+                        
+                        exportToExcel(filteredSchedules);
+                    }
+                });
+            }
+
+            function importSchedules(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Get first sheet
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        
+                        // Validate and process data
+                        const importedSchedules = jsonData.map(item => {
+                            // Basic validation
+                            if (!item.Tanggal || !item['Waktu Mulai'] || !item['Waktu Selesai'] || 
+                                !item['Mata Pelajaran'] || !item.Pengajar || !item.Lokasi) {
+                                return null;
+                            }
+                            
+                            // Convert time format if needed
+                            const startTime = convertTimeFormat(item['Waktu Mulai']);
+                            const endTime = convertTimeFormat(item['Waktu Selesai']);
+                            
+                            return {
+                                id: Date.now() + Math.floor(Math.random() * 1000), // ID unik
+                                date: formatDate(item.Tanggal),
+                                startTime: startTime,
+                                endTime: endTime,
+                                subject: item['Mata Pelajaran'],
+                                teacher: item.Pengajar,
+                                location: item.Lokasi
+                            };
+                        }).filter(item => item !== null);
+                        
+                        if (importedSchedules.length > 0) {
+                            showConfirmation(`Apakah Anda yakin ingin mengimpor ${importedSchedules.length} jadwal? Data yang ada tidak akan ditimpa.`, () => {
+                                // Check for conflicts first
+                                const hasConflict = importedSchedules.some(newSchedule => 
+                                    checkScheduleConflict(newSchedule)
+                                );
+                                
+                                if (hasConflict) {
+                                    showConflictNotification('Beberapa jadwal yang diimpor memiliki konflik');
+                                    return;
+                                }
+                                
+                                // Add imported schedules without overwriting existing ones
+                                schedules = [...schedules, ...importedSchedules];
+                                saveSchedules(); // Save to Firebase
+                                renderAllViews();
+                                
+                                Swal.fire('Sukses', `${importedSchedules.length} jadwal berhasil diimpor`, 'success');
+                            });
+                        } else {
+                            Swal.fire('Gagal', 'Tidak ada data jadwal yang valid dalam file ini', 'error');
+                        }
+                    } catch (error) {
+                        Swal.fire('Error', 'Gagal membaca file. Pastikan format file benar.', 'error');
+                        console.error(error);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+                
+                // Reset input file untuk mengizinkan impor file yang sama lagi
+                e.target.value = '';
+            }
+
+            // Helper functions for import
+            function convertTimeFormat(time) {
+                // Handle various time formats (e.g., "13:30", "1:30 PM", "13.30")
+                if (typeof time === 'number') {
+                    // Excel time format (fraction of a day)
+                    const totalSeconds = time * 24 * 60 * 60;
+                    const hours = Math.floor(totalSeconds / 3600);
+                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                } else if (typeof time === 'string') {
+                    // Handle string time formats
+                    if (time.includes('PM') || time.includes('AM')) {
+                        // Format 12-hour with AM/PM
+                        return convert12to24(time);
+                    } else if (time.includes('.')) {
+                        // Format with dots (13.30)
+                        return time.replace('.', ':');
+                    }
+                    // Assume it's already in HH:MM format
+                    return time;
+                }
+                return '08:00'; // Default fallback
+            }
+
+            function convert12to24(time12h) {
+                const [time, modifier] = time12h.split(' ');
+                let [hours, minutes] = time.split(':');
+                
+                if (hours === '12') {
+                    hours = '00';
+                }
+                
+                if (modifier === 'PM') {
+                    hours = parseInt(hours, 10) + 12;
+                }
+                
+                return `${hours.toString().padStart(2, '0')}:${minutes}`;
+            }
+
+            function formatDate(date) {
+                // Handle various date formats
+                if (date instanceof Date) {
+                    return date.toISOString().split('T')[0];
+                } else if (typeof date === 'string') {
+                    // Try to parse different date string formats
+                    if (date.includes('/')) {
+                        // Format DD/MM/YYYY
+                        const [day, month, year] = date.split('/');
+                        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    } else if (date.includes('-')) {
+                        // Format YYYY-MM-DD or DD-MM-YYYY
+                        const parts = date.split('-');
+                        if (parts[0].length === 4) {
+                            return date; // Already in YYYY-MM-DD format
+                        } else {
+                            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                        }
+                    }
+                }
+                return new Date().toISOString().split('T')[0]; // Default fallback
+            }
+
+            /// Set default view to daily vertical
+            inputForm.classList.remove('hidden');
+            dailyView.classList.remove('hidden');
+            weeklyView.classList.add('hidden');
+            monthlyView.classList.add('hidden')
+        });
+    </script>
+</body>
+</html>
