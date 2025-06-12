@@ -750,28 +750,25 @@
             }
 
             function loadSchedules() {
-                // Coba load dari Firebase
                 database.ref('schedules').once('value')
                     .then(snapshot => {
                         const data = snapshot.val();
                         if (data) {
                             schedules = data;
                             localStorage.setItem('schedules', JSON.stringify(data));
-                            console.log("Data berhasil dimuat dari Firebase");
                         } else {
-                            // Fallback ke localStorage jika Firebase kosong
-                            schedules = JSON.parse(localStorage.getItem('schedules')) || [];
-                            console.log("Menggunakan data dari localStorage");
+                            schedules = [];
+                            localStorage.removeItem('schedules');
                         }
                         renderAllViews();
                     })
                     .catch(error => {
                         console.error("Error loading from Firebase:", error);
-                        // Fallback ke localStorage jika Firebase error
-                        schedules = JSON.parse(localStorage.getItem('schedules')) || [];
+                        schedules = [];
                         renderAllViews();
                     });
             }
+
 
             // Fungsi untuk menambahkan listener realtime (opsional)
             function setupRealtimeListener() {
@@ -780,10 +777,14 @@
                     if (data) {
                         schedules = data;
                         localStorage.setItem('schedules', JSON.stringify(data));
-                        renderAllViews();
+                    } else {
+                        schedules = [];
+                        localStorage.removeItem('schedules');
                     }
+                    renderAllViews();
                 });
             }
+
 
             // Inisialisasi
             generateTimeOptions();
@@ -791,7 +792,6 @@
             generateEditFormDropdowns();
             currentDateInput.valueAsDate = new Date();
             scheduleDateInput.valueAsDate = new Date();
-            loadSchedules();
             setupRealtimeListener(); 
             
             // Event Listeners
