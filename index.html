@@ -1301,6 +1301,17 @@
             return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
         }
 
+        function getTeacherColor(teacherName) {
+            const teacher = teachers.find(t => t.name === teacherName);
+            // Jika teacher ditemukan, gunakan warnanya. Jika tidak, gunakan warna default (#4f46e5)
+            return teacher ? teacher.color || '#4f46e5' : '#4f46e5';
+        }
+
+        function getSubjectColor(subjectName) {
+            const subject = subjects.find(s => s.name === subjectName);
+            return subject ? subject.color || '#10b981' : '#10b981';
+        }
+
         function getContrastColor(hexColor) {
             if (hexColor.startsWith('hsl')) {
                 const matches = hexColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
@@ -1381,6 +1392,38 @@
             window.confirmationCallback = callback;
             confirmationModal.show();
         }
+
+        function showConflictNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'conflict-notification';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        function updateCurrentWeekDisplay() {
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            const options = { day: 'numeric', month: 'long', year: 'numeric' };
+            currentWeekElement.textContent = `
+                ${currentWeekStart.toLocaleDateString('id-ID', options)} - 
+                ${weekEnd.toLocaleDateString('id-ID', options)}`;
+        }
+
+        function updateCurrentMonthDisplay() {
+            const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            currentMonthElement.textContent = `${months[currentMonth]} ${currentYear}`;
+        }
+
+        function toggleInputSection(type) {
+            inputManagement.classList.add('active');
+            for (let key in inputSections) {
+                inputSections[key].classList.toggle('hidden', key !== type);
+            }
+        }
+
+
 
         // ====================
         // DATA LOADING FUNCTIONS
@@ -3497,24 +3540,16 @@
                 e.preventDefault();
                 const type = this.dataset.type;
                 currentInputType = type;
-                
-                // Hide all input sections
-                Object.values(inputSections).forEach(section => {
-                    section.classList.add('hidden');
-                });
-                
-                // Show selected input section
-                inputSections[type].classList.remove('hidden');
-                
-                // Show input management
-                inputManagement.classList.remove('hidden');
-                
-                // Hide other views
+
+                toggleInputSection(type); // ✅ panggil fungsinya
+
+                // Hide views lain
                 dailyView.classList.add('hidden');
                 weeklyView.classList.add('hidden');
                 monthlyView.classList.add('hidden');
             });
         });
+
 
         // Search and filter handlers
         document.getElementById('scheduleSearch').addEventListener('input', (e) => {
