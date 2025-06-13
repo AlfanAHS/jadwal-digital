@@ -75,7 +75,9 @@
             transition: all 0.2s ease;
         }
         .teacher-summary:hover {
+            cursor: pointer;
             transform: scale(1.02);
+            transition: transform 0.2s ease-in-out;
         }
         .subject-badge {
             display: inline-block;
@@ -1101,6 +1103,16 @@
             </div>
         </div>
 
+        <!-- Modal Detail (Pengajar / Mata Pelajaran) -->
+        <div class="modal fade" id="detailModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" id="detailModalContent">
+                    <!-- Konten modal akan diisi via JavaScript -->
+                </div>
+            </div>
+        </div>
+
+
         <!-- Footer -->
         <footer class="bg-gray-800 text-white py-4 no-print">
             <div class="container mx-auto px-4 text-center">
@@ -1197,6 +1209,9 @@
         let subjects = [];
         let locations = [];
         let classes = [];
+        let teacherColorMap = {};
+        let subjectColorMap = {};
+
 
         // ====================
         // STATE VARIABLES
@@ -1448,36 +1463,58 @@
         function loadTeachers() {
             database.ref('teachers').once('value')
                 .then(snapshot => {
-                    const data = snapshot.val();
-                    teachers = data ? Object.values(data) : [];
-                    localStorage.setItem('teachers', JSON.stringify(teachers));
-                    renderTeacherOptions();
-                    renderTeacherTable();
+                const data = snapshot.val();
+                teachers = data ? Object.values(data) : [];
+                teacherColorMap = {}; // reset map warna
+
+                // isi map warna dari data guru
+                teachers.forEach(teacher => {
+                    if (teacher.name && teacher.color) {
+                    teacherColorMap[teacher.name] = teacher.color;
+                    }
+                });
+
+                localStorage.setItem('teachers', JSON.stringify(teachers));
+                renderTeacherOptions();
+                renderTeacherTable();
                 })
                 .catch(error => {
-                    console.error("Error loading teachers:", error);
-                    teachers = [];
-                    renderTeacherOptions();
-                    renderTeacherTable();
+                console.error("Error loading teachers:", error);
+                teachers = [];
+                teacherColorMap = {};
+                renderTeacherOptions();
+                renderTeacherTable();
                 });
         }
+
 
         function loadSubjects() {
             database.ref('subjects').once('value')
                 .then(snapshot => {
-                    const data = snapshot.val();
-                    subjects = data ? Object.values(data) : [];
-                    localStorage.setItem('subjects', JSON.stringify(subjects));
-                    renderSubjectOptions();
-                    renderSubjectTable();
+                const data = snapshot.val();
+                subjects = data ? Object.values(data) : [];
+                subjectColorMap = {}; // reset map warna
+
+                // isi map warna dari data mapel
+                subjects.forEach(subject => {
+                    if (subject.name && subject.color) {
+                    subjectColorMap[subject.name] = subject.color;
+                    }
+                });
+
+                localStorage.setItem('subjects', JSON.stringify(subjects));
+                renderSubjectOptions();
+                renderSubjectTable();
                 })
                 .catch(error => {
-                    console.error("Error loading subjects:", error);
-                    subjects = [];
-                    renderSubjectOptions();
-                    renderSubjectTable();
+                console.error("Error loading subjects:", error);
+                subjects = [];
+                subjectColorMap = {};
+                renderSubjectOptions();
+                renderSubjectTable();
                 });
         }
+
 
         function loadLocations() {
             database.ref('locations').once('value')
@@ -2619,33 +2656,31 @@
         }
 
         function showTeacherDetail(teacher, stats) {
-            const modal = new bootstrap.Modal(document.createElement('div'));
             const modalContent = `
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header" style="border-bottom-color: ${stats.color}">
-                            <h5 class="modal-title" style="color: ${stats.color}">Detail Pengajar: ${teacher}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-4">
-                                <h4 class="font-semibold text-lg mb-2">Total Jam Mengajar: ${stats.hours.toFixed(1)} jam</h4>
-                                <h4 class="font-semibold mb-2">Sesi Mengajar:</h4>
-                                <div class="space-y-2">
-                                    ${getTeacherSessionsHtml(stats)}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                <div class="modal-header" style="border-bottom-color: ${stats.color}">
+                    <h5 class="modal-title" style="color: ${stats.color}">Detail Pengajar: ${teacher}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <h4 class="font-semibold text-lg mb-2">Total Jam Mengajar: ${stats.hours.toFixed(1)} jam</h4>
+                        <h4 class="font-semibold mb-2">Sesi Mengajar:</h4>
+                        <div class="space-y-2">
+                            ${getTeacherSessionsHtml(stats)}
                         </div>
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
             `;
-            
-            modal._element.innerHTML = modalContent;
+
+            document.getElementById('detailModalContent').innerHTML = modalContent;
+
+            const modal = new bootstrap.Modal(document.getElementById('detailModal'));
             modal.show();
         }
+
 
         function getTeacherSessionsHtml(stats) {
             let html = '';
@@ -2687,33 +2722,31 @@
         }
 
         function showSubjectDetail(subject, stats) {
-            const modal = new bootstrap.Modal(document.createElement('div'));
             const modalContent = `
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header" style="border-bottom-color: ${stats.color}">
-                            <h5 class="modal-title" style="color: ${stats.color}">Detail Mata Pelajaran: ${subject}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-4">
-                                <h4 class="font-semibold text-lg mb-2">Total Jam: ${stats.hours.toFixed(1)} jam</h4>
-                                <h4 class="font-semibold mb-2">Sesi Pembelajaran:</h4>
-                                <div class="space-y-2">
-                                    ${getSubjectSessionsHtml(stats)}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                <div class="modal-header" style="border-bottom-color: ${stats.color}">
+                    <h5 class="modal-title" style="color: ${stats.color}">Detail Mata Pelajaran: ${subject}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <h4 class="font-semibold text-lg mb-2">Total Jam: ${stats.hours.toFixed(1)} jam</h4>
+                        <h4 class="font-semibold mb-2">Sesi Pembelajaran:</h4>
+                        <div class="space-y-2">
+                            ${getSubjectSessionsHtml(stats)}
                         </div>
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
             `;
-            
-            modal._element.innerHTML = modalContent;
+
+            document.getElementById('detailModalContent').innerHTML = modalContent;
+
+            const modal = new bootstrap.Modal(document.getElementById('detailModal'));
             modal.show();
         }
+
 
         function getSubjectSessionsHtml(stats) {
             let html = '';
