@@ -1463,31 +1463,44 @@
                 .then(snapshot => {
                 const data = snapshot.val();
                 teachers = data ? Object.values(data) : [];
-                teacherColorMap = {}; // Reset warna
-                teachers.forEach(t => {
-                    teacherColorMap[t.name] = t.color || getRandomColor();
+                teacherColorMap = {}; // Reset
+                
+                teachers.forEach(teacher => {
+                    teacherColorMap[teacher.name] = teacher.color || getRandomColor();
                 });
+
+                renderTeacherOptions();
+                renderTeacherTable();
+                })
+                .catch(error => {
+                console.error("Error loading teachers:", error);
+                teachers = [];
                 renderTeacherOptions();
                 renderTeacherTable();
                 });
         }
-
-
 
         function loadSubjects() {
             database.ref('subjects').once('value')
                 .then(snapshot => {
                 const data = snapshot.val();
                 subjects = data ? Object.values(data) : [];
-                subjectColorMap = {}; // Reset warna
-                subjects.forEach(s => {
-                    subjectColorMap[s.name] = s.color || getRandomColor();
+                subjectColorMap = {}; // Reset
+                
+                subjects.forEach(subject => {
+                    subjectColorMap[subject.name] = subject.color || getRandomColor();
                 });
+
+                renderSubjectOptions();
+                renderSubjectTable();
+                })
+                .catch(error => {
+                console.error("Error loading subjects:", error);
+                subjects = [];
                 renderSubjectOptions();
                 renderSubjectTable();
                 });
         }
-
 
 
         function loadLocations() {
@@ -1537,18 +1550,36 @@
                 const data = snapshot.val();
                 teachers = data ? Object.values(data) : [];
                 localStorage.setItem('teachers', JSON.stringify(teachers));
+
+                teacherColorMap = {};
+                teachers.forEach(t => {
+                    teacherColorMap[t.name] = t.color || getRandomColor();
+                });
+
                 renderTeacherOptions();
                 renderTeacherTable();
+
+                // ✅ Tambahkan render ulang views DI SINI
+                renderAllViews(); // atau renderWeeklyView() & renderDailyView()
             });
-            
+
+
             database.ref('subjects').on('value', snapshot => {
                 const data = snapshot.val();
                 subjects = data ? Object.values(data) : [];
                 localStorage.setItem('subjects', JSON.stringify(subjects));
+
+                subjectColorMap = {};
+                subjects.forEach(s => {
+                    subjectColorMap[s.name] = s.color || getRandomColor();
+                });
+
                 renderSubjectOptions();
                 renderSubjectTable();
+
+                renderAllViews(); // ⬅️ tambahkan ini juga jika diperlukan
             });
-            
+
             database.ref('locations').on('value', snapshot => {
                 const data = snapshot.val();
                 locations = data ? Object.values(data) : [];
