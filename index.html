@@ -1317,15 +1317,13 @@
         }
 
         function getTeacherColor(teacherName) {
-            const teacher = teachers.find(t => t.name === teacherName);
-            // Jika teacher ditemukan, gunakan warnanya. Jika tidak, gunakan warna default (#4f46e5)
-            return teacher ? teacher.color || '#4f46e5' : '#4f46e5';
+            return teacherColorMap[teacherName] || '#4f46e5'; // default indigo
         }
 
         function getSubjectColor(subjectName) {
-            const subject = subjects.find(s => s.name === subjectName);
-            return subject ? subject.color || '#10b981' : '#10b981';
+            return subjectColorMap[subjectName] || '#10b981'; // default hijau
         }
+
 
         function getContrastColor(hexColor) {
             if (hexColor.startsWith('hsl')) {
@@ -1465,27 +1463,15 @@
                 .then(snapshot => {
                 const data = snapshot.val();
                 teachers = data ? Object.values(data) : [];
-                teacherColorMap = {}; // reset map warna
-
-                // isi map warna dari data guru
-                teachers.forEach(teacher => {
-                    if (teacher.name && teacher.color) {
-                    teacherColorMap[teacher.name] = teacher.color;
-                    }
+                teacherColorMap = {}; // Reset warna
+                teachers.forEach(t => {
+                    teacherColorMap[t.name] = t.color || getRandomColor();
                 });
-
-                localStorage.setItem('teachers', JSON.stringify(teachers));
-                renderTeacherOptions();
-                renderTeacherTable();
-                })
-                .catch(error => {
-                console.error("Error loading teachers:", error);
-                teachers = [];
-                teacherColorMap = {};
                 renderTeacherOptions();
                 renderTeacherTable();
                 });
         }
+
 
 
         function loadSubjects() {
@@ -1493,27 +1479,15 @@
                 .then(snapshot => {
                 const data = snapshot.val();
                 subjects = data ? Object.values(data) : [];
-                subjectColorMap = {}; // reset map warna
-
-                // isi map warna dari data mapel
-                subjects.forEach(subject => {
-                    if (subject.name && subject.color) {
-                    subjectColorMap[subject.name] = subject.color;
-                    }
+                subjectColorMap = {}; // Reset warna
+                subjects.forEach(s => {
+                    subjectColorMap[s.name] = s.color || getRandomColor();
                 });
-
-                localStorage.setItem('subjects', JSON.stringify(subjects));
-                renderSubjectOptions();
-                renderSubjectTable();
-                })
-                .catch(error => {
-                console.error("Error loading subjects:", error);
-                subjects = [];
-                subjectColorMap = {};
                 renderSubjectOptions();
                 renderSubjectTable();
                 });
         }
+
 
 
         function loadLocations() {
