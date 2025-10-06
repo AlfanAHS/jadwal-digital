@@ -259,6 +259,10 @@
             gap: 10px;
             margin-top: 10px;
         }
+        #importScheduleModal{
+            
+            overflow-y: scroll;
+        }
         .edit-modal-content {
             background-color: white;
             border-radius: 8px;
@@ -639,7 +643,7 @@
                     </form>
                     
                     <h3 class="text-lg font-semibold text-gray-800 mt-6 mb-4">Daftar Jadwal</h3>
-                    <div class="w-full max-w-6xl mx-auto">
+                    <div class="overflow-x-auto">
 
                         <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
                             <label class="text-sm">Tampilkan:
@@ -682,6 +686,8 @@
                                 <th class="p-2 border" data-sort="teacher" data-label="Pengajar">Pengajar</th>
                                 <th class="p-2 border" data-sort="location" data-label="Lokasi">Lokasi</th>
                                 <th class="p-2 border" data-sort="class" data-label="Kelas">Kelas</th>
+                                <th class="p-2 border" data-sort="createdAt" data-label="Tgl Ditambahkan">Tgl Ditambahkan</th>
+                                <th class="p-2 border" data-sort="addedBy" data-label="Oleh">Oleh</th>
                                 <th class="p-2 border w-32">Aksi</th>
                             </tr>
                             </thead>
@@ -690,7 +696,7 @@
                         </table>
 
                         <div id="schedulePagination" class="flex justify-between items-center mt-3 text-sm font-medium"></div>
-                        </div>
+                    </div>
 
                 </div>
 
@@ -743,6 +749,8 @@
                                 <th data-sort="name" data-label="Nama" class="sortable">Nama</th>
                                 <th data-sort="email" data-label="Email" class="sortable">Email</th>
                                 <th data-sort="phone" data-label="No HP" class="sortable">No HP</th>
+                                <th data-sort="createdAt" data-label="Tgl Ditambahkan" class="sortable">Tgl Ditambahkan</th>
+                                <th data-sort="addedBy" data-label="Oleh" class="sortable">Oleh</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -766,43 +774,45 @@
                             <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-all">Tambah Mata Pelajaran</button>
                         </div>
                     </form>
-                                    
-                                    <h3 class="text-lg font-semibold text-gray-800 mt-6 mb-4">Daftar Mata Pelajaran</h3>
-                                    <div class="flex justify-between items-center my-2">
-                                        <div>
-                                            <label class="text-sm">Tampilkan:
-                                            <select id="subjectEntriesPerPage" class="border px-2 py-1 rounded text-sm">
-                                                <option value="10">10</option>
-                                                <option value="25">25</option>
-                                                <option value="50">50</option>
-                                                <option value="100">100</option>
-                                            </select> data
-                                            </label>
-                                        </div>
+                                        
+                    <h3 class="text-lg font-semibold text-gray-800 mt-6 mb-4">Daftar Mata Pelajaran</h3>
+                    <div class="flex justify-between items-center my-2">
+                        <div>
+                            <label class="text-sm">Tampilkan:
+                            <select id="subjectEntriesPerPage" class="border px-2 py-1 rounded text-sm">
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select> data
+                            </label>
+                        </div>
 
-                                        <div>
-                                            <button id="deleteSelectedSubjects" 
-                                                class="bg-red-600 text-white px-3 py-1 rounded text-sm my-2 opacity-50 cursor-not-allowed" disabled>
-                                                Hapus Terpilih
-                                            </button>
-                                            <input type="text" id="subjectSearch" placeholder="Cari mata pelajaran..." class="border px-3 py-1 rounded text-sm">
-                                        </div>
-                                    </div>
+                        <div>
+                            <button id="deleteSelectedSubjects" 
+                                class="bg-red-600 text-white px-3 py-1 rounded text-sm my-2 opacity-50 cursor-not-allowed" disabled>
+                                Hapus Terpilih
+                            </button>
+                            <input type="text" id="subjectSearch" placeholder="Cari mata pelajaran..." class="border px-3 py-1 rounded text-sm">
+                        </div>
+                    </div>
 
-                                    <div class="w-full max-w-4xl mx-auto"> <table id="subjectTable" class="w-full text-sm border border-gray-300 rounded overflow-hidden">
-                                        <thead class="bg-gray-100 text-left">
-                                            <tr>
-                                                <th class="p-2 border"><input type="checkbox" id="subjectSelectAll" /></th>
-                                                <th class="p-2 border" data-sort="name" data-label="Nama Mapel">Nama Mapel</th>
-                                                <th class="p-2 border w-32">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="subjectTableBody">
-                                            </tbody>
-                                    </table>
-                                    </div>
+                    <div class="w-full max-w-4xl mx-auto"> <table id="subjectTable" class="w-full text-sm border border-gray-300 rounded overflow-hidden">
+                        <thead class="bg-gray-100 text-left">
+                            <tr>
+                                <th class="p-2 border"><input type="checkbox" id="subjectSelectAll" /></th>
+                                <th class="p-2 border" data-sort="name" data-label="Nama Mapel">Nama Mapel</th>
+                                <th class="p-2 border" data-sort="createdAt" data-label="Tgl Ditambahkan">Tgl Ditambahkan</th>
+                                <th class="p-2 border" data-sort="addedBy" data-label="Oleh">Oleh</th>
+                                <th class="p-2 border w-32">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subjectTableBody">
+                        </tbody>
+                    </table>
+                    </div>
 
-                                    <div id="subjectPagination" class="flex justify-between items-center mt-3 text-sm font-medium"></div>
+                    <div id="subjectPagination" class="flex justify-between items-center mt-3 text-sm font-medium"></div>
 
                 </div>
 
@@ -845,6 +855,8 @@
                             <tr>
                                 <th class="p-2 border"><input type="checkbox" id="locationSelectAll" /></th>
                                 <th class="p-2 border" data-sort="name" data-label="Nama Lokasi">Nama Lokasi</th>
+                                <th class="p-2 border" data-sort="createdAt" data-label="Tgl Ditambahkan">Tgl Ditambahkan</th>
+                                <th class="p-2 border" data-sort="addedBy" data-label="Oleh">Oleh</th>
                                 <th class="p-2 border w-32">Aksi</th>
                             </tr>
                             </thead>
@@ -894,6 +906,8 @@
                             <tr>
                                 <th class="p-2 border"><input type="checkbox" id="classSelectAll" /></th>
                                 <th class="p-2 border" data-sort="name" data-label="Nama Kelas">Nama Kelas</th>
+                                <th class="p-2 border" data-sort="createdAt" data-label="Tgl Ditambahkan">Tgl Ditambahkan</th>
+                                <th class="p-2 border" data-sort="addedBy" data-label="Oleh">Oleh</th>
                                 <th class="p-2 border w-32">Aksi</th>
                             </tr>
                             </thead>
@@ -1252,11 +1266,13 @@
         }
         
         const auth = firebase.auth();
+        let currentUserEmail = null; // Variabel untuk menyimpan email pengguna
 
         auth.onAuthStateChanged(user => {
             if (user) {
                 // Pengguna sudah login, biarkan halaman ditampilkan
-                console.log('Pengguna terautentikasi:', user.email);
+                currentUserEmail = user.email; // Simpan email pengguna
+                console.log('Pengguna terautentikasi:', currentUserEmail);
                 
                 // Tambahkan fungsionalitas logout ke tombol
                 const btnLogout = document.getElementById('btnLogout');
@@ -1273,6 +1289,7 @@
 
             } else {
                 // Pengguna belum login, alihkan ke halaman login (index.html)
+                currentUserEmail = null;
                 console.log('Tidak ada pengguna, mengalihkan ke login...');
                 window.location.href = 'index.html';
             }
@@ -1411,6 +1428,17 @@
             // ====================
             // UTILITY FUNCTIONS
             // ====================
+            function formatTimestamp(isoString) {
+                if (!isoString) return '-';
+                const date = new Date(isoString);
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${day}/${month}/${year} ${hours}:${minutes}`;
+            }
+            
             function isTimeMultipleOfFive(timeString) {
                 if (!timeString) return false;
                 const minutes = parseInt(timeString.split(':')[1], 10);
@@ -2126,6 +2154,8 @@
                         <td class="p-2 border">${schedule.teacher}</td>
                         <td class="p-2 border">${schedule.location}</td>
                         <td class="p-2 border">${schedule.class || '-'}</td>
+                        <td class="p-2 border">${formatTimestamp(schedule.createdAt)}</td>
+                        <td class="p-2 border">${schedule.addedBy || '-'}</td>
                         <td class="p-2 border">
                             <div class="action-btns">
                                 <button class="bg-blue-500 text-white px-2 py-1 rounded text-xs edit-schedule-btn" data-id="${schedule.id}">Edit</button>
@@ -2214,6 +2244,8 @@
                         <td>${teacher.name}</td>
                         <td>${teacher.email || '-'}</td>
                         <td>${teacher.phone || '-'}</td>
+                        <td>${formatTimestamp(teacher.createdAt)}</td>
+                        <td>${teacher.addedBy || '-'}</td>
                         <td>
                             <div class="action-btns">
                                 <button class="action-btn-table edit-btn edit-teacher-btn" data-id="${teacher.id}">Edit</button>
@@ -2297,6 +2329,8 @@
                     row.innerHTML = `
                         <td class="p-2 border"><input type="checkbox" class="subject-checkbox" data-id="${subject.id}"></td>
                         <td class="p-2 border">${subject.name}</td>
+                        <td class="p-2 border">${formatTimestamp(subject.createdAt)}</td>
+                        <td class="p-2 border">${subject.addedBy || '-'}</td>
                         <td class="p-2 border">
                             <div class="action-btns">
                                 <button class="action-btn-table edit-btn edit-subject-btn" data-id="${subject.id}">Edit</button>
@@ -2380,6 +2414,8 @@
                     row.innerHTML = `
                         <td class="p-2 border"><input type="checkbox" class="location-checkbox" data-id="${location.id}"></td>
                         <td class="p-2 border">${location.name}</td>
+                        <td class="p-2 border">${formatTimestamp(location.createdAt)}</td>
+                        <td class="p-2 border">${location.addedBy || '-'}</td>
                         <td class="p-2 border">
                             <div class="action-btns">
                                 <button class="bg-blue-500 text-white px-2 py-1 rounded text-xs edit-location-btn" data-id="${location.id}">Edit</button>
@@ -2463,6 +2499,8 @@
                     row.innerHTML = `
                         <td class="p-2 border"><input type="checkbox" class="class-checkbox" data-id="${cls.id}"></td>
                         <td class="p-2 border">${cls.name}</td>
+                        <td class="p-2 border">${formatTimestamp(cls.createdAt)}</td>
+                        <td class="p-2 border">${cls.addedBy || '-'}</td>
                         <td class="p-2 border">
                             <div class="action-btns">
                                 <button class="bg-blue-500 text-white px-2 py-1 rounded text-xs edit-class-btn" data-id="${cls.id}">Edit</button>
@@ -2948,7 +2986,9 @@
                     subject: subjectName.value,
                     teacher: teacherName.value,
                     location: location.value,
-                    class: className.value
+                    class: className.value,
+                    createdAt: new Date().toISOString(),
+                    addedBy: currentUserEmail || 'system'
                 };
 
                 if (!isTimeMultipleOfFive(newSchedule.startTime) || !isTimeMultipleOfFive(newSchedule.endTime)) {
@@ -3050,14 +3090,15 @@
                 const id = editScheduleId.value;
 
                 const updatedSchedule = {
-                    id: id,
                     date: editScheduleDate.value,
                     startTime: editStartTimeInput.value,
                     endTime: editEndTimeInput.value,
                     subject: editSubjectName.value,
                     teacher: editTeacherName.value,
                     location: editLocation.value,
-                    class: editClassName.value
+                    class: editClassName.value,
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: currentUserEmail || 'system'
                 };
                 
                 if (!isTimeMultipleOfFive(updatedSchedule.startTime) || !isTimeMultipleOfFive(updatedSchedule.endTime)) {
@@ -3090,7 +3131,9 @@
                     name: document.getElementById('teacherNameInput').value.trim(),
                     email: document.getElementById('teacherEmailInput').value.trim(),
                     phone: document.getElementById('teacherPhoneInput').value.trim(),
-                    color: getRandomColor()
+                    color: getRandomColor(),
+                    createdAt: new Date().toISOString(),
+                    addedBy: currentUserEmail || 'system'
                 };
 
                 if (!newTeacher.name) {
@@ -3130,10 +3173,11 @@
             function updateTeacher() {
                 const id = document.getElementById('editTeacherId').value;
                 const updatedTeacher = {
-                    id: id,
                     name: document.getElementById('editTeacherNameInput').value.trim(),
                     email: document.getElementById('editTeacherEmailInput').value.trim(),
-                    phone: document.getElementById('editTeacherPhoneInput').value.trim()
+                    phone: document.getElementById('editTeacherPhoneInput').value.trim(),
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: currentUserEmail || 'system'
                 };
 
                 if (!updatedTeacher.name) {
@@ -3167,7 +3211,9 @@
                 const newSubject = {
                     id: database.ref().push().key,
                     name: document.getElementById('subjectNameInput').value.trim(),
-                    color: getRandomColor()
+                    color: getRandomColor(),
+                    createdAt: new Date().toISOString(),
+                    addedBy: currentUserEmail || 'system'
                 };
 
                 if (!newSubject.name) {
@@ -3205,8 +3251,9 @@
             function updateSubject() {
                 const id = document.getElementById('editSubjectId').value;
                 const updatedSubject = {
-                    id: id,
-                    name: document.getElementById('editSubjectNameInput').value.trim()
+                    name: document.getElementById('editSubjectNameInput').value.trim(),
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: currentUserEmail || 'system'
                 };
 
                 if (!updatedSubject.name) {
@@ -3239,7 +3286,9 @@
             function addNewLocation() {
                 const newLocation = {
                     id: database.ref().push().key,
-                    name: document.getElementById('locationNameInput').value.trim()
+                    name: document.getElementById('locationNameInput').value.trim(),
+                    createdAt: new Date().toISOString(),
+                    addedBy: currentUserEmail || 'system'
                 };
 
                 if (!newLocation.name) {
@@ -3277,8 +3326,9 @@
             function updateLocation() {
                 const id = document.getElementById('editLocationId').value;
                 const updatedLocation = {
-                    id: id,
-                    name: document.getElementById('editLocationNameInput').value.trim()
+                    name: document.getElementById('editLocationNameInput').value.trim(),
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: currentUserEmail || 'system'
                 };
 
                 if (!updatedLocation.name) {
@@ -3311,7 +3361,9 @@
             function addNewClass() {
                 const newClass = {
                     id: database.ref().push().key,
-                    name: document.getElementById('classNameInput').value.trim()
+                    name: document.getElementById('classNameInput').value.trim(),
+                    createdAt: new Date().toISOString(),
+                    addedBy: currentUserEmail || 'system'
                 };
 
                 if (!newClass.name) {
@@ -3349,8 +3401,9 @@
             function updateClass() {
                 const id = document.getElementById('editClassId').value;
                 const updatedClass = {
-                    id: id,
-                    name: document.getElementById('editClassNameInput').value.trim()
+                    name: document.getElementById('editClassNameInput').value.trim(),
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: currentUserEmail || 'system'
                 };
 
                 if (!updatedClass.name) {
@@ -3478,7 +3531,9 @@
                     'Mata Pelajaran': s.subject,
                     Pengajar: s.teacher,
                     Lokasi: s.location,
-                    Kelas: s.class || '-'
+                    Kelas: s.class || '-',
+                    'Tanggal Ditambahkan': formatTimestamp(s.createdAt),
+                    'Ditambahkan Oleh': s.addedBy || ''
                 }));
 
                 const ws = XLSX.utils.json_to_sheet(formatted);
@@ -3594,18 +3649,30 @@
                 XLSX.writeFile(wb, "template-impor-jadwal.xlsx");
             }
 
-
-            function isScheduleConflict(newSchedule, existingSchedules) {
+            // ✅ FUNGSI DIPERBAIKI
+            function isScheduleConflict(newSchedule, existingSchedules, excludeId = null) {
                 if (!Array.isArray(existingSchedules)) return false;
+
                 return existingSchedules.some(existing => {
-                    return (
-                        existing.date === newSchedule.date &&
-                        existing.location === newSchedule.location &&
-                        !(
-                            newSchedule.endTime <= existing.startTime ||
-                            newSchedule.startTime >= existing.endTime
-                        )
+                    if (existing.id === excludeId) return false;
+
+                    // Cek jika waktu tumpang tindih
+                    const timeOverlap = !(
+                        newSchedule.endTime <= existing.startTime ||
+                        newSchedule.startTime >= existing.endTime
                     );
+
+                    // Jika tanggal & waktu tumpang tindih, cek konflik pengajar atau lokasi
+                    if (existing.date === newSchedule.date && timeOverlap) {
+                        if (existing.teacher === newSchedule.teacher) {
+                            return true; // Konflik Pengajar
+                        }
+                        if (existing.location === newSchedule.location) {
+                            return true; // Konflik Lokasi
+                        }
+                    }
+                    
+                    return false;
                 });
             }
 
@@ -4202,7 +4269,6 @@
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
                     const json = XLSX.utils.sheet_to_json(sheet);
 
-                    // ✅ REVISI: Logika impor diubah
                     importedSchedules = json.map(item => {
                         const schedule = {
                             date: formatDate(item.Tanggal),
@@ -4214,12 +4280,14 @@
                             class: item.Kelas || ''
                         };
 
+                        // Gunakan fungsi isScheduleConflict yang sudah diperbaiki
                         const conflict = isScheduleConflict(schedule, schedules);
                         const ref = isValidReference(schedule);
 
                         schedule.__isConflict = conflict;
                         schedule.__ref = ref;
                         
+                        // Jadwal valid HANYA jika tidak ada konflik
                         schedule.__valid = (
                             !!schedule.date && !!schedule.startTime && !!schedule.endTime &&
                             !!schedule.subject && !!schedule.teacher && !!schedule.location &&
@@ -4239,7 +4307,7 @@
                         if(!classValid) reason.push('Kelas baru');
 
                         return `
-                        <tr class="${row.__valid ? '' : 'bg-red-100'}" title="${reason.join(', ')}">
+                        <tr class="${row.__isConflict ? 'bg-red-100' : ''}" title="${reason.join(', ')}">
                             <td class="border px-2">${row.date}</td>
                             <td class="border px-2">${row.startTime}</td>
                             <td class="border px-2">${row.endTime}</td>
@@ -4279,7 +4347,6 @@
             });
 
             document.getElementById('btnConfirmImport').addEventListener('click', async () => {
-                // ✅ REVISI: Logika impor baru dengan pembuatan data master otomatis
                 try {
                     const btn = document.getElementById('btnConfirmImport');
                     btn.disabled = true;
@@ -4301,25 +4368,27 @@
                     // 2. Buat promise untuk menambahkan semua data master baru
                     const masterDataPromises = [];
                     let createdItemsCount = 0;
+                    const now = new Date().toISOString();
+                    const user = currentUserEmail || 'importer';
 
                     newTeachers.forEach(name => {
                         const newId = database.ref().push().key;
-                        masterDataPromises.push(database.ref('teachers/' + newId).set({ id: newId, name, color: getRandomColor() }));
+                        masterDataPromises.push(database.ref('teachers/' + newId).set({ id: newId, name, color: getRandomColor(), createdAt: now, addedBy: user }));
                         createdItemsCount++;
                     });
                     newSubjects.forEach(name => {
                         const newId = database.ref().push().key;
-                        masterDataPromises.push(database.ref('subjects/' + newId).set({ id: newId, name, color: getRandomColor() }));
+                        masterDataPromises.push(database.ref('subjects/' + newId).set({ id: newId, name, color: getRandomColor(), createdAt: now, addedBy: user }));
                         createdItemsCount++;
                     });
                     newLocations.forEach(name => {
                         const newId = database.ref().push().key;
-                        masterDataPromises.push(database.ref('locations/' + newId).set({ id: newId, name }));
+                        masterDataPromises.push(database.ref('locations/' + newId).set({ id: newId, name, createdAt: now, addedBy: user }));
                         createdItemsCount++;
                     });
                     newClasses.forEach(name => {
                         const newId = database.ref().push().key;
-                        masterDataPromises.push(database.ref('classes/' + newId).set({ id: newId, name }));
+                        masterDataPromises.push(database.ref('classes/' + newId).set({ id: newId, name, createdAt: now, addedBy: user }));
                         createdItemsCount++;
                     });
                     
@@ -4338,7 +4407,9 @@
                             subject: item.subject,
                             teacher: item.teacher,
                             location: item.location,
-                            class: item.class || ''
+                            class: item.class || '',
+                            createdAt: now,
+                            addedBy: user
                         });
                     });
 
